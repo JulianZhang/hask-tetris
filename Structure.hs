@@ -42,41 +42,6 @@ data Field = Field {
          markField   :: [(Position, Bool)] -- 24 x 20
          }
 
--- what is the logic should this be?
--- we only needs to check whether it can transform , can move down
-
-canMoveDown :: Block -> Field -> Bool
-canMoveDown block field = let yy  = map ( (+1) . yp ) $ coordinate block
-                              marks = map  (yp . fst) . filter ( == True . snd ) $ markField field 
-                           in not . or . map (\ y -> any (elem y) marks ) $ yy
-
-canTransform :: Block -> Field -> Bool
-canTransform block field = let newP = 
-
-getNextTransformBlock :: Block -> Block
-getNextTransformBlock block = let nextVariant  = getNextVariant $ shapeV block
-                                  newPositions = getNewPostions nextVariant $ coordinate block
-                               in Block { shapeV     = nextVariant,
-                                          coordinate = newPositions }
- 
-            where 
-            getNextVariant :: ShapeV -> ShapeV
-            getNextVariant ShapeV (shape, variant) 
-               = case shape of
-                   I -> Shape (shape, mod (variant + 1) 2)
-                   L -> Shape (shape, mod (variant + 1) 4)
-                   J -> Shape (shape, mod (variant + 1) 4)
-                   O -> Shape (shape, variant)
-                   S -> Shape (shape, mod (variant + 1) 2)
-                   Z -> Shape (shape, mod (variant + 1) 2)
-                   T -> Shape (shape, mod (variant + 1) 4)                       
-            
-            getNewPostions shapeV coors = 
-
-  
-
-getBlockPosition :: Block -> 
-
 
 -- data ControlInfo
 data BoundM a = Crash | Trans a

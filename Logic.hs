@@ -1,4 +1,4 @@
-module Logis where
+module Logic where
 
 import Data.List
 import Structure
@@ -9,30 +9,36 @@ import Structure
 maxRows  = 24
 maxColum = 18
 
-shapeVI = [ [(0,0), (1,0), (2,0), (3,0),], [(0,0), (0,-1), (0,-2), (0,-3)] ]
---shapeVO = NoNeed for O
-shapeVS = [ [(0,0), (1,0), (1,-1), (2,-1),], [(0,0), (0,1), (1, 1), (1,2)] ]
-shapeVZ = [ [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ]
+-- relative positio, header position
+relativePO = [ [(0,0), (1,0), (0,1), (1,1)] ]
+headerPO   = [(0, 0)]
 
-shapeVL = [ [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ,
-            [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ]
+relativePI = [ [(0,0), (1,0), (2,0),  (3,0) ], [(0,0), (0,-1), (0,-2), (0,-3)] ]
+headerPI   = [ (-3,3), (3, -3)]
 
-shapeVJ = [ [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ,
-            [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ]
+relativePL = [ [(0,0), (0,1),  (-1,1) , (-2,1)], [(0,0), (1,0), (1,1), (1,2)   ] ,
+               [(0,0), (0,-1), (1,-1), (2, -1)], [(0,0), (-1,0),(-1,-1),(-1,-2)] ]
+headerPL   = [ (1,-1), (-2,-1), (-1,-2), (2,0) ]
 
-shapeVT = [ [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ,
-            [(0,0), (1,0), (1, 1), (2, 1),], [(0,0), (0,1), (-1,1), (2,2)] ]
+relativePJ = [ [(0,0), (0,1),  (1,1),  (2,1)  ], [(0,0), (1,0) , (1,-1), (1,-2) ] ,
+               [(0,0), (0,-1), (-1,-1),(-2,-1)], [(0,0), (-1,0), (-1,1), (-1,2) ] ]
+headerPJ   = [ (-2,-1), (0,1), (2,0), (0,-2) ]
 
--- what is the logic should this be?
--- we only needs to check whether it can transform , can move down
+relativePS = [ [(0,0), (1,0), (,-1), (2,11)], [(0,0), (0,1), (1, 1), (1,2)] ]
+headerPS   = [ (-1,2), (0,-2)]
 
-canMoveDown :: Block -> Field -> Bool
-canMoveDown block field = let yy  = map ( (+1) . yp ) $ coordinate block
-                              marks = map  (yp . fst) . filter ( == True . snd ) $ markField field 
-                           in not . or . map (\ y -> any (elem y) marks ) $ yy
+relativePZ = [ [(0,0), (1,0), (1,1), (2,1)], [(0,0), (0,1), (-1,1), (-1,2)] ]
+headerPZ   = [ (-2,1), (1, -1)]
 
-canTransform :: Block -> Field -> Bool
-canTransform block field = let newP = 
+
+relativePT = [ [(0,0), (1,0), (2,0), (1,1)  ], [(0,0), (0,-1),(0,-2),(1,-1)] ,
+               [(0,0), (-1,0),(-2,0),(-1,-1)], [(0,0), (0,1), (0,2), (-1,1)] ]
+headerPT   = [ (-2,1), (1,1), (2,0), (0,2) ]
+
+
+relativeP = [ relativePO, relativePI, relativePL,  relativePJ, relativePS, relativePZ,  relativePT]
+headerP   = [ headerPO, headerPI, headerPL, headerPJ, headerPS, headerPZ,  headerPT]
+
 
 getNextTransformBlock :: Block -> Block
 getNextTransformBlock block = let nextVariant  = getNextVariant $ shapeV block
@@ -40,36 +46,61 @@ getNextTransformBlock block = let nextVariant  = getNextVariant $ shapeV block
                                in Block { shapeV     = nextVariant,
                                           coordinate = newPositions }
  
-            where 
-            getNextVariant :: ShapeV -> ShapeV
-            getNextVariant ShapeV (shape, variant) 
-               = case shape of
-                   I -> Shape (shape, mod (variant + 1) 2)
-                   L -> Shape (shape, mod (variant + 1) 4)
-                   J -> Shape (shape, mod (variant + 1) 4)
-                   O -> Shape (shape, variant)
-                   S -> Shape (shape, mod (variant + 1) 2)
-                   Z -> Shape (shape, mod (variant + 1) 2)
-                   T -> Shape (shape, mod (variant + 1) 4)                       
+{-| it take the current positions and expected variant NO.
+    return new positions of the block.
+    find the header postion first, should take Boundary into consideration.
+-}
+shapeVList = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
 
-            -- this func should take Boundary into consideration
-            getNewPostions shapeV coors = 
+getNextTransformBlock :: Block -> Block
+getNextTransformBlock    block
+    = let (s, v)         = shapeV     block
+          ps             = coordinate block
+          ((_, n), m)   = filter ( == s . fst . fst) $ zip shapeVist [0..]     
+          v'             = mod (v + 1) n
+          ps'            = transform ps v' m
+       in Block { shapeV = {s, v'}, coordinate = ps' }
 
+coorPlus  (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
-canTransform :: Block -> Occupy -> Maybe Bool
-canTransform = bottomCheck >>= occupyCheck 
-
-
-bottomCheck :: Block -> Occupy -> Maybe Bool
-bottomCheck block occupy = undefined
-
-
-boundCheck  :: Block -> Occupy -> Maybe Bool
-boundCheck  block occupy = undefined 
+transform ps n m  = let (x1, y1) = head ps
+                        (xh, yh) = (headerP !! m) !! n
+                        x1' = | x1 + xh <  0        = 0
+                              | x1 + xh >= maxColum = maxColum -1
+                    in map $ coorPluse (x1', yh) $ (relativeP !! m) !! n
 
 
-occupyCheck :: Block -> Occupy -> Maybe Bool
-occupyCheck block occupy = undefined
+-- | real check function that return Bool
+
+-- move down
+-- first check whther reach bottom
+isReachBottom :: Block -> Bool
+isReachBottom block = let yps = map yp $ coordinate block
+                       in or . map ( == (maxRows -1)) $ yps
+
+canMoveDown :: Block -> Field -> (Block, Bool)
+canMoveDown block field = let newP  = map (coorPlus (0,1) ) $ coordinate block
+                              newBlock = block {coordinate = newP}
+                              markP = map fst . filter ( == True . snd) $ markField field
+                           in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
+
+-- transform
+canTransform :: Block -> Field -> (Block, Bool)
+canTransform block field = let newBlock =  getNextTransformBlock block
+                               newp  = coordinat newBlock
+                               markP = map fst . filter ( == True . snd) $ markField field
+                            in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
+
+
+-- update field 
+-- we first use List, may change to Data.Vector in future.
+data Field = Field {
+         fieldArear  :: (Int, Int)  -- the battle field of TETRIS' coordiante
+         markField   :: [(Position, Bool)] -- 24 x 20
+         }
+
+
+
 
 
 meltBlocks :: Occupy -> Occupy
