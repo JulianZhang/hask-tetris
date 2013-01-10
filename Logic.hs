@@ -6,8 +6,8 @@ import Structure
 -- when do transform of block, the according transform of its 4 units' transform
 -- relative ones, the first one is the base case.
 
-maxRows  = 24
-maxColum = 18
+maxRows   = 24 :: Int
+maxColumn = 18 :: Int
 
 -- relative positio, header position
 relativePO = [ [(0,0), (1,0), (0,1), (1,1)] ]
@@ -101,8 +101,9 @@ addToField block field = let ps = coordinate block
 
 -- we just check one row after another and update the field accordingly
 -- call this after addToField
-rows      = [0..(maxRows-1)]
-columnSum = foldl (+) 0 [0..(maxColumn-1)]
+rows      = [0..(maxRows-1)] :: [Int]
+columnSum = foldl (+) 0 [0..(maxColumn-1)] :: Int
+
 
 meltBlocks :: Field -> Field
 meltBlocks field = let markP = markField field
@@ -121,7 +122,7 @@ meltBlocks field = let markP = markField field
 
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
-         fieldArear  :: (Int, Int) -- 24 x 18 the battle field of TETRIS' coordiante
+         fieldArea   :: (Int, Int) -- 24 x 18 the battle field of TETRIS' coordiante
          markField   :: [Position] -- 
          }
 

@@ -22,25 +22,35 @@ data LayoutInfo = LayoutInfo {
 
 data Shape = I | J | L | O | S | Z | T 
 
--- shape variants
+-- shape variants. make it instance Show?
 data ShapeV = ShapeV (Shape, Int) -- shape and their transformers, represent by Int
+instance Show ShapeV where
+     show I = "I"
+     show J = "J"
+     show L = "L"
+     show S = "S"
+     show Z = "Z"
+     show T = "T"
+     show O = "O"
+     
+
 
 data Position = Position {
-                xp ::  Int
+                xp ::  Int,
                 yp ::  Int
                 } deriving (Show)
 
 -- shape: use Int to represent
 data Block = Block {
-         shapeV       :: ShapeV     -- shape type and current variant
+         shapeV       :: ShapeV,    -- shape type and current variant
          coordinate   :: [Position] -- current postion, row and column coordinate, 4 units
          } deriving (Show)
 
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
-         fieldArear  :: (Int, Int)  -- the battle field of TETRIS' coordiante
-         markField   :: [Position] -- 24 x 20
-         }
+         fieldArea   :: (Int, Int),  -- the battle field of TETRIS' coordiante
+         markField   :: [Position]   -- 24 x 20
+         } deriving (Show)
 
 
 -- data ControlInfo
