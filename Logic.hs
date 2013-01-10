@@ -79,32 +79,56 @@ isReachBottom block = let yps = map yp $ coordinate block
                        in or . map ( == (maxRows -1)) $ yps
 
 canMoveDown :: Block -> Field -> (Block, Bool)
-canMoveDown block field = let newP  = map (coorPlus (0,1) ) $ coordinate block
+canMoveDown block field = let newP     = map (coorPlus (0,1) ) $ coordinate block
                               newBlock = block {coordinate = newP}
-                              markP = map fst . filter ( == True . snd) $ markField field
+                              markP    = markField field
                            in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
 
 -- transform
 canTransform :: Block -> Field -> (Block, Bool)
 canTransform block field = let newBlock =  getNextTransformBlock block
-                               newp  = coordinat newBlock
-                               markP = map fst . filter ( == True . snd) $ markField field
+                               newp     = coordinat newBlock
+                               markP    = markField field
                             in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
 
 
--- update field 
+-- | update field 
+
+-- when cannot move down or isReachBottom, we update this.
+addToField :: Block -> Field -> Field
+addToField block field = let ps = coordinate block
+                          in filed { markField = union (markField field) ps }
+
+-- we just check one row after another and update the field accordingly
+-- call this after addToField
+rows      = [0..(maxRows-1)]
+columnSum = foldl (+) 0 [0..(maxColumn-1)]
+
+meltBlocks :: Field -> Field
+meltBlocks field = let markP = markField field
+                       sortY =  sort . flip filter rows $ 
+                                \ y -> (sum . filter (== y . yp) $ markP) == columnSum
+                    -- less than y's rwo, move down first and update field
+                    in case length sortY == 0 of
+                             True  -> field
+                             False -> field { markField =  foldl step markP sortY }
+
+                    where step ps y = let ps' = filter ( /= y . yp ) ps
+                                       in map (ltYPlusOne y) ps'
+                          ltYPlusOne y p = case yp p < y of
+                                                True  -> p { yp = yp p + 1}
+                                                Flase -> p
+
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
-         fieldArear  :: (Int, Int)  -- the battle field of TETRIS' coordiante
-         markField   :: [(Position, Bool)] -- 24 x 20
+         fieldArear  :: (Int, Int) -- 24 x 18 the battle field of TETRIS' coordiante
+         markField   :: [Position] -- 
          }
 
 
 
 
 
-meltBlocks :: Occupy -> Occupy
-meltBlocks occpy = undefined
 
 isGameOver :: Occupy -> Bool
 isGameOver occupy = undefined

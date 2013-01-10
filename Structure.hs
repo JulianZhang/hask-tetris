@@ -33,13 +33,13 @@ data Position = Position {
 -- shape: use Int to represent
 data Block = Block {
          shapeV       :: ShapeV     -- shape type and current variant
-         coordinate   :: [Position] -- current postion, row and column coordinate, 4 units.
+         coordinate   :: [Position] -- current postion, row and column coordinate, 4 units
          } deriving (Show)
 
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
          fieldArear  :: (Int, Int)  -- the battle field of TETRIS' coordiante
-         markField   :: [(Position, Bool)] -- 24 x 20
+         markField   :: [Position] -- 24 x 20
          }
 
 
