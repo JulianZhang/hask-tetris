@@ -6,9 +6,6 @@ import Data.List
 import qualified Data.Map as M
 
 -- draw part should be totally separated from the logic
--- which means Structure and Logic is in the same part but, the draw and 
--- the coordinate translate in the same part.
-
 data LayoutInfo = LayoutInfo {
           windows        :: Window
           drawArea       :: DrawingAera
@@ -33,12 +30,18 @@ instance Show ShapeV where
      show T = "T"
      show O = "O"
      
-
-
 data Position = Position {
                 xp ::  Int,
                 yp ::  Int
                 } deriving (Show)
+instance Num Position where 
+     a + b = Position ( xp = xp a + xp b, yp = yp a + yp b)
+     a - b = Position ( xp = xp a - xp b, yp = yp a - yp b)
+     a * b = Position ( xp = xp a * xp b, yp = yp a * yp b)
+     negate a = Position ( xp = negate $ xp a , yp = negate $ yp a)
+     abs    a = error "abs is not implemented"
+     signum a = error "signum is unimplemented"
+     fromInteger a = error "fromInteger is unimplemented"
 
 -- shape: use Int to represent
 data Block = Block {
@@ -51,13 +54,3 @@ data Field = Field {
          fieldArea   :: (Int, Int),  -- the battle field of TETRIS' coordiante
          markField   :: [Position]   -- 24 x 20
          } deriving (Show)
-
-
--- data ControlInfo
-data BoundM a = Crash | Trans a
-
-instance Monad BoundM where
-     return x      =  Trans x
-     Crash >>= f   =  Crash
-     Trans x >>= f =  f x
-     fail _        =  Crash
