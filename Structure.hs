@@ -8,13 +8,19 @@ import qualified Data.Map as M
 -- draw part should be totally separated from the logic
 data LayoutInfo = LayoutInfo {
           windows        :: Window
-          drawArea       :: DrawingAera
           vBoxMain       :: Box
-          vBoxMain       :: Box
+          hBoxMain       :: Box
+          aFrame         :: AspectFrame
+          drawingArea    :: DrawingAera
           vBoxSub        :: Box
-          pauseButton    :: Button
-          restartButton  :: Button
-          labelTitle     :: Label
+          previewArea    :: DrawingAera
+          labelCounter   :: Label
+          labelLevel     :: Label
+          hButtonBox     :: HButtonBox
+          pauseB         :: Button
+          restartB       :: Button
+          infoB          :: Button
+          quitB          :: Button
           } deriving (Show)
 
 data Shape = I | J | L | O | S | Z | T 
