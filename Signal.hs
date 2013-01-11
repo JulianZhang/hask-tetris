@@ -1,22 +1,43 @@
-module Utils where
-
-import Control.Monad
-import Data.List
-import 
+module Signal where
 
 
-maxRows        = 24 :: Int
-maxColumns     = 18 :: Int
+import Graphics.GUI.Gtk
+import Layout
+import Structure
+import Logic
 
-cellSize       = 20 :: Int
-cellBorderSize = 1  :: Int
+-- type HandlerId = CUInt
+timerId = MVar (fromInteger 0) :: MVar HandlerId
 
-canvasWidth  = cellSize * maxColumns
-canvasHeight = cellSize * maxRows
+registerSignals :: DrawInfo -> IO DrawInfo
+registerSignals drawInfo = do
 
--- get the coordinate used in 
-coordinateTransform :: Position -> (Int, Int)
-coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
+    mainWindow drawInfo `on` objectDestroy mainQuit
+   
+    pauseButtonAffair drawInfo
+
+    pauseB   drawInfo `onClicked` pause
+    restartB drawInfo `onClicked` 
+    infoB    drawInfo `onClicked` showInfo
+    quitB    drawInfo `onClicked` ( do widgetDestroy mainWindow
+                                       mainQuit )
+
+          vBoxMain       :: Box
+          hBoxMain       :: Box
+          aFrame         :: AspectFrame
+          drawingArea    :: DrawingAera
+          vBoxSub        :: Box
+          previewArea    :: DrawingAera
+          labelScore     :: Label
+          labelLevel     :: Label
+          hButtonBox     :: HButtonBox
+          pauseB         :: Button
+          restartB       :: Button
+          infoB          :: Button
+          quitB          :: Button
+    
+    return drawInfo 
+
 
 -- this belong to signaling part.
         onClicked qr $ do
@@ -59,6 +80,36 @@ coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
                     road2render jam cars
             return True
 
-    on mainWindow objectDestroy mainQuit
+
     widgetShowAll mainWindow
     mainGUI
+
+
+-- we need MVar to be passed.
+pauseButtonAffair drawInfo = do
+    let pause = pauseB drawInfo
+    buttonSetUseStocl pause True
+    onToggled pause $ do
+              isPause <- toggleButtonGetActive pause
+              case isPause of
+                   False -> run   drawInfo
+                   True  -> pause drawInfo
+
+--|||||||||| we need more carefully design here.
+run drawInfo  = do
+                Just =<< flip timeoutAdd 33
+                (step >> widgetQueueDraw previewArea >> widgetQueueDraw drawingArea >> return True)
+
+pause =  do
+         maybe (return ()) timeoutRemove =<< getTimeoutId
+         setTimeoutId Nothing
+
+
+showInfo = do
+    ad <- aboutDialogNew
+    aboutDialogSetName     ad $ "Hask-Tetris"
+    aboutDialogSetVersion  ad $ "1.0"
+    aboutDialogSetAuthors  ad $ ["Peng Xingtao " ++ "<peng.xingtao@gmail.com>"]
+    aboutDialogSetComments ad $ "Practising "  ++ " Practising"
+    dialogRun              ad
+    widgetDestroy          ad

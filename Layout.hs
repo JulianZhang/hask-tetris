@@ -1,14 +1,7 @@
 module Layout where
 
 import Graphics.UI.Gtk
-import Data.List
-import Control.Monad
-import Control.Concurrent
-import System.IO
-import System.Process
 
-import Utils
-import Logic
 -- remember, draw two bricks wall in the both vertical sides.
 -- and each block shape has its own color
 -- after settled, the color turns to Grey. (draw field area can do this)
@@ -38,6 +31,7 @@ initTetrisLayout = do
     strScore     <- labelNewWithMnemonic "__L.E.V.E.L"
     labelScore   <- labelNew $ Just "0"
     labelLevel   <- labelNew $ Just "0"
+    upperPad     <- labelNew $ Nothing
 
     -- we put the drawArea upon a frame
     aFrame <- aspectFrameNew 0.5 0.5 (Just (maxColumns / maxRows))
@@ -57,9 +51,9 @@ initTetrisLayout = do
     containerAdd vBoxSub labelLevel  PackNatural 0
 
     -- aFrame and vBoxSub are put into a hBox
-
     boxPackStart hBoxMain aFrame     PackGrow    0
     boxPackStart hBoxMain vBoxSub    PackNatural 0
+    boxPackStart vBoxMain upperPad   PackNatural 0 -- we add a upper pad.
     boxPackStart vBoxMain hBoxMain   PackNatural 0
     boxPackStart vBoxMain hButtonBox PackNatural 0
 
@@ -70,7 +64,7 @@ initTetrisLayout = do
     windowSetDefaultSize mainWindow 640 480
 
     return LayoutInfo {
-                 windows     =   windows      , 
+                 mainWindow  =   mainWindow   , 
                  vBoxMain    =   vBoxMain     , 
                  hBoxMain    =   hBoxMain     , 
                  aFrame      =   aFrame       , 
@@ -85,4 +79,18 @@ initTetrisLayout = do
                  infoB       =   infoB        , 
                  quitB       =   quitB       
                  }   
+
+
+maxRows        = 24 :: Int
+maxColumns     = 18 :: Int
+
+cellSize       = 20 :: Int
+cellBorderSize = 1  :: Int
+
+canvasWidth  = cellSize * maxColumns
+canvasHeight = cellSize * maxRows
+
+-- get the coordinate used in 
+coordinateTransform :: Position -> (Int, Int)
+coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
 

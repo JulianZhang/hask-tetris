@@ -7,14 +7,14 @@ import qualified Data.Map as M
 
 -- draw part should be totally separated from the logic
 data LayoutInfo = LayoutInfo {
-          windows        :: Window
+          mainWindow     :: Window
           vBoxMain       :: Box
           hBoxMain       :: Box
           aFrame         :: AspectFrame
           drawingArea    :: DrawingAera
           vBoxSub        :: Box
           previewArea    :: DrawingAera
-          labelCounter   :: Label
+          labelScore     :: Label
           labelLevel     :: Label
           hButtonBox     :: HButtonBox
           pauseB         :: Button
