@@ -1,11 +1,22 @@
 module Layout where
 
 import Graphics.UI.Gtk
+import Graphics.UI.Gtk.Gdk.EventM
+import Graphics.Rendering.Cairo
 
--- remember, draw two bricks wall in the both vertical sides.
--- and each block shape has its own color
--- after settled, the color turns to Grey. (draw field area can do this)
--- I orange | J: purple | L: blue | O: yellow| S: green | Z: pink | T: red 
+maxRows        = 24 :: Int
+maxColumns     = 18 :: Int
+
+cellSize       = 20 :: Int
+cellBorderSize = 1  :: Int
+
+canvasWidth  = cellSize * maxColumns
+canvasHeight = cellSize * maxRows
+
+-- get the coordinate used in 
+coordinateTransform :: Position -> (Int, Int)
+coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
+
 
 initTetrisLayout :: DrawInfo
 initTetrisLayout = do
@@ -78,19 +89,4 @@ initTetrisLayout = do
                  restartB    =   restartB     , 
                  infoB       =   infoB        , 
                  quitB       =   quitB       
-                 }   
-
-
-maxRows        = 24 :: Int
-maxColumns     = 18 :: Int
-
-cellSize       = 20 :: Int
-cellBorderSize = 1  :: Int
-
-canvasWidth  = cellSize * maxColumns
-canvasHeight = cellSize * maxRows
-
--- get the coordinate used in 
-coordinateTransform :: Position -> (Int, Int)
-coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
-
+                      }   

@@ -6,21 +6,31 @@ import Layout
 import Structure
 import Logic
 
+-- field connect Logic, layout and render.
+
+
 -- type HandlerId = CUInt
 timerId = MVar (fromInteger 0) :: MVar HandlerId
 
-registerSignals :: DrawInfo -> IO DrawInfo
-registerSignals drawInfo = do
+
+registerSignals :: DrawInfo -> Field -> IO DrawInfo
+registerSignals drawInfo field = do
 
     mainWindow drawInfo `on` objectDestroy mainQuit
    
-    pauseButtonAffair drawInfo
-
-    pauseB   drawInfo `onClicked` pause
-    restartB drawInfo `onClicked` 
+    pauseB   drawInfo `onClicked` pauseButtonAffair drawInfo
+    restartB drawInfo `onClicked` reset    drawInfo field
     infoB    drawInfo `onClicked` showInfo
-    quitB    drawInfo `onClicked` ( do widgetDestroy mainWindow
-                                       mainQuit )
+    quitB    drawInfo `onClicked` ( widgetDestroy mainWindow >> mainQuit )
+
+    widgetAddEvents (drawingArea drawInfo) [PointerMotionMask]
+    widgetAddEvents (previewArea drawInfo) [PointerMotionMask]
+
+    drawingArea drawInfo `on` exposeEvent drawMain draw field
+    previewArea drawInfo `on` exposeEvent drawSub  draw -- we just randomly take one block.
+
+    widgetShowAll mainWindow
+    mainGUI
 
           vBoxMain       :: Box
           hBoxMain       :: Box
@@ -35,54 +45,6 @@ registerSignals drawInfo = do
           restartB       :: Button
           infoB          :: Button
           quitB          :: Button
-    
-    return drawInfo 
-
-
--- this belong to signaling part.
-        onClicked qr $ do
-            (liftM length) getCars >>= setCars . newCarList
-            getCurrentTime >>= setTimeStamp
-            widgetQueueDraw drawingArea
-
-        buttonSetUseStock qp True
-        onToggled qp $ do
-            p <- toggleButtonGetActive qp
-            case p of
-                True -> pause
-                False -> resume
-
-        onClicked qq (do
-                       widgetDestroy mainWindow
-                       mainQuit)
-
-    widgetAddEvents dr [PointerMotionMask]
-    on dr motionNotifyEvent $ do
-            (r,t) <- eventPolarCoordinates
-            liftIO $ if (0.8<r && r<1.2)
-                then setJam (Just t)
-                else setJam Nothing
-            liftIO $ widgetQueueDraw dr
-            return True
-
-        on dr leaveNotifyEvent $ liftIO $
-            setJam Nothing >> return True
-
-        on dr exposeEvent $ do
-            (w,h) <- eventWindowSize
-            dw <- eventWindow
-            liftIO $ do
-                jam <- getJam
-                cars <- getCars
-                renderWithDrawable dw $ do
-                    translate (w/2) (h/2)
-                    scale (w/drawSide) (h/drawSide)
-                    road2render jam cars
-            return True
-
-
-    widgetShowAll mainWindow
-    mainGUI
 
 
 -- we need MVar to be passed.
@@ -95,21 +57,56 @@ pauseButtonAffair drawInfo = do
                    False -> run   drawInfo
                    True  -> pause drawInfo
 
---|||||||||| we need more carefully design here.
-run drawInfo  = do
-                Just =<< flip timeoutAdd 33
-                (step >> widgetQueueDraw previewArea >> widgetQueueDraw drawingArea >> return True)
-
-pause =  do
-         maybe (return ()) timeoutRemove =<< getTimeoutId
-         setTimeoutId Nothing
+--timeoutAdd IO Bool -> Int-> IO Handler
+runTetris drawInfo = do
+                handler <- flip timeoutAdd 33
+                          (updateStatus >> widgetQueueDraw previewArea >> widgetQueueDraw drawingArea >> return True)
+                tryTakeMVar >> putMVar handler 
+                  
+pause drawInfo = tryTakeMVar timerId >>= maybe (return ()) timeoutRemove
 
 
 showInfo = do
     ad <- aboutDialogNew
     aboutDialogSetName     ad $ "Hask-Tetris"
     aboutDialogSetVersion  ad $ "1.0"
-    aboutDialogSetAuthors  ad $ ["Peng Xingtao " ++ "<peng.xingtao@gmail.com>"]
-    aboutDialogSetComments ad $ "Practising "  ++ " Practising"
+    aboutDialogSetAuthors  ad $ ["Peng Xingtao " ++ "<peng.pxt@gmail.com>"]
+    aboutDialogSetComments ad $ "Heading For There"
     dialogRun              ad
     widgetDestroy          ad
+
+
+
+drawMain drawInfo field = do 
+    (w,h) <- eventWindowSize
+    dw <- eventWindow
+    liftIO $ do
+      jam <- getJam
+      cars <- getCars
+      renderWithDrawable dw $ do
+                            translate (w/2) (h/2)
+                            scale (w/drawSide) (h/drawSide)
+                            road2render jam cars
+      return True
+
+
+drawMain drawInfo field = do 
+    (w,h) <- eventWindowSize
+    dw <- eventWindow
+
+
+
+
+{-
+define XK_Home			0xFF50
+define XK_Left			0xFF51	/* Move left, left arrow */
+define XK_Up			0xFF52	/* Move up, up arrow */
+define XK_Right		0xFF53	/* Move right, right arrow */
+define XK_Down			0xFF54	/* Move down, down arrow */
+define XK_Prior		0xFF55	/* Prior, previous */
+define XK_Page_Up		0xFF55
+define XK_Next			0xFF56	/* Next */
+define XK_Page_Down		0xFF56
+define XK_End			0xFF57	/* EOL */
+define XK_Begin		0xFF58	/* BOL */
+-}
