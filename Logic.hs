@@ -65,9 +65,10 @@ transform ps n m  = let (x1, y1) = head ps
 
 -- move down
 -- first check whther reach bottom
-down  = Position { xp = 0,  yp = 1)
-left  = Position { xp = -1, yp = 0)
-right = Position { xp = 1,  yp = 0)
+down  = Position { xp = 0,  yp = 1) } 
+left  = Position { xp =-1,  yp = 0) } 
+right = Position { xp = 1,  yp = 0) } 
+up    = Position { xp =-10, yp =-10) } 
 
 isReachBottom :: Block -> Bool
 isReachBottom block = let yps = map yp $ coordinate block

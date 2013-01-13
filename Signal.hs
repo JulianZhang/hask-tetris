@@ -8,10 +8,8 @@ import Logic
 
 -- field connect Logic, layout and render.
 
-
 -- type HandlerId = CUInt
 timerId = MVar (fromInteger 0) :: MVar HandlerId
-
 
 registerSignals :: DrawInfo -> Field -> IO DrawInfo
 registerSignals drawInfo field = do
@@ -29,23 +27,10 @@ registerSignals drawInfo field = do
     drawingArea drawInfo `on` exposeEvent drawMain draw field
     previewArea drawInfo `on` exposeEvent drawSub  draw -- we just randomly take one block.
 
+    mainWindow `on` keyPressEvent $ kbReact field
+
     widgetShowAll mainWindow
     mainGUI
-
-          vBoxMain       :: Box
-          hBoxMain       :: Box
-          aFrame         :: AspectFrame
-          drawingArea    :: DrawingAera
-          vBoxSub        :: Box
-          previewArea    :: DrawingAera
-          labelScore     :: Label
-          labelLevel     :: Label
-          hButtonBox     :: HButtonBox
-          pauseB         :: Button
-          restartB       :: Button
-          infoB          :: Button
-          quitB          :: Button
-
 
 -- we need MVar to be passed.
 pauseButtonAffair drawInfo = do
@@ -89,13 +74,13 @@ drawMain drawInfo field = do
                             road2render jam cars
       return True
 
-
 drawMain drawInfo field = do 
     (w,h) <- eventWindowSize
     dw <- eventWindow
 
-
-
+kbReact field = do tryEvent $ do
+                   kv  <- eventKeyVal
+                   liftIO $ updateStatus kv field
 
 {-
 define XK_Home			0xFF50
