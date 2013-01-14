@@ -1,10 +1,21 @@
-module Logic where
+module Logic where (initFieldData, drawMainArea, drawPreviewArea, keyboardReact)
 
+import System.Random
 import Data.List
+
 import Structure
 
--- when do transform of block, the according transform of its 4 units' transform
--- relative ones, the first one is the base case.
+
+-- | this is the interface
+initFieldData :: DrawInfo -> IO (DrawInfo, MVar Field)
+initFieldData drawInfo = do
+          let field = Field { currentBlock = blockEmpty, backupBlock = blockEmpty, markField = []}
+              backupBlock  = getNewBackupBlock drawInfo field
+              currentBlock = getNewBackupBlock drawInfo field
+          varField <- newEmptyMVar field
+          return (drawInfo, field {currentBlock = currentBlock, backupBlock = backupBlock} )
+
+
 
 maxRows   = 24 :: Int
 maxColumn = 18 :: Int
@@ -37,7 +48,18 @@ headerPT   = [ (-2,1), (1,1), (2,0), (0,2) ]
 relativeP = [ relativePO, relativePI, relativePL,  relativePJ, relativePS, relativePZ,  relativePT]
 headerP   = [ headerPO, headerPI, headerPL, headerPJ, headerPS, headerPZ,  headerPT]
 
-shapeVList = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
+shapeVList   = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
+
+                  -- O                         -- I                            
+initPosition = [ [(9,0),(10,0),(9,1),(10,1)],  [(8,0),(9,0),(10,0),(11,0),], 
+                  -- L                         -- J
+                 [(11,0),(11,1),(10,1),(9,1)], [(9,0),(9,0),(10,0),(11,0),]   
+                  -- S                         -- Z
+                 [(9,1),(10,1),(10,0),(11,0)], [(9,0),(10,0),(10,1),(11,1)], 
+                  -- T
+                 [(9,0),(10,0),(11,0),(10,1)]                 ]
+
+colorList    = [ ] -- all kinds of colors!!
 
 {-| it take the current positions and expected variant NO.
     return new positions of the block.
@@ -97,7 +119,7 @@ addToField block field = let ps = coordinate block
 -- we just check one row after another and update the field accordingly
 -- call this after addToField
 rows      = [0 .. (maxRows-1)]             :: [Int]
-columnSum = foldl (+) 0 [0..(maxColumn-1)] :: Int
+columnSum = foldl (+) 0 [0..(maxColumn-1)] ::  Int
 
 meltBlocks :: Field -> Field
 meltBlocks field = let markP = markField field
@@ -115,5 +137,83 @@ meltBlocks field = let markP = markField field
                                                 Flase -> p
 
 -- when yp = 0, this is called after meltBlocks
+blockEmpty = Block { shapeV = head shapeVList, color = head colorList, markField = [] }
+
 isGameOver :: Field -> Bool
 isGameOver filed = (length . filter ( (== 0) . yp ) $ markField filed) > 0
+
+
+getNewBackupBlock :: (DrawInfo, Field) -> IO (DrawInfo, Field)
+getNewBackupBlock drawInfo field = do
+         time' <- getCurrentTime
+         let timeSeed = truncat . (* 1000000) . diffTime $ time' $ initTime drawInfo :: Int
+             stdGen   = mkStdGen timeSeed
+             (si, newGen) = randomR (0,6) stdGen -- shapeIndex
+             (ci, _)      = randomR (0,?) newGen -- colorIndex
+             positions    = positionsFromList (initPositon !! si)
+         return $(drawInfo, Field { backupBlock = Block { shapeV  = shapeVList !! si, 
+                                                          color   = colorList  !! ci,
+                                                          coordinate = positions    }  }
+         where positionsFromList []     = []
+               positionsFromList (x:xs) = Position {xp = fst x, yp = snd x} : positionsFromList xs
+               diffTime :: UTCTime -> UTCTime -> Double
+               diffTime = (realToFrac .) . diffUTCTime
+
+
+drawMainArea drawInfo field val = do 
+    -- first update field status    
+    field <- updateStatus field stepDown 
+    (w,h) <- eventWindowSize
+    dw <- eventWindow
+    liftIO $ do
+      jam <- getJam
+      cars <- getCars
+      renderWithDrawable dw $ do
+                            translate (w/2) (h/2)
+                            scale (w/drawSide) (h/drawSide)
+                            road2render jam cars
+      return True
+
+drawPreviewArea drawInfo field = do 
+      (w,h) <- eventWindowSize
+      dw <- eventWindow
+      -- reander preview area using backupBlock
+
+
+--tryEvent :: EventM any () -> EventM any Bool
+--Execute an event handler and assume it handled the event unless it threw a pattern match exception. 
+
+keyboardReact drawInfo field = 
+                      do tryEvent $ do
+                      kv  <- eventKeyVal
+                      liftIO $ drawMainArea    drawInfo field kv
+                      liftIO $ drawPreviewArea drawInfo field
+
+                      return True
+                      
+-- updateStatus : key function , also update the 'level & score'
+-- val
+updateStatus :: Word32 -> Field -> Field
+updateStatus val field = 
+
+
+
+
+
+-- resetAll 
+
+
+
+{-
+define XK_Home			0xFF50
+define XK_Left			0xFF51	/* Move left, left arrow */
+define XK_Up			0xFF52	/* Move up, up arrow */
+define XK_Right		0xFF53	/* Move right, right arrow */
+define XK_Down			0xFF54	/* Move down, down arrow */
+define XK_Prior		0xFF55	/* Prior, previous */
+define XK_Page_Up		0xFF55
+define XK_Next			0xFF56	/* Next */
+define XK_Page_Down		0xFF56
+define XK_End			0xFF57	/* EOL */
+define XK_Begin		0xFF58	/* BOL */
+-}

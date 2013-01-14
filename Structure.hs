@@ -40,6 +40,7 @@ data Position = Position {
                 xp ::  Int,
                 yp ::  Int
                 } deriving (Show)
+
 instance Num Position where 
      a + b = Position ( xp = xp a + xp b, yp = yp a + yp b)
      a - b = Position ( xp = xp a - xp b, yp = yp a - yp b)
@@ -52,11 +53,14 @@ instance Num Position where
 -- shape: use Int to represent
 data Block = Block {
          shapeV       :: ShapeV,    -- shape type and current variant
+         color        :: Color
          coordinate   :: [Position] -- current postion, row and column coordinate, 4 units
          } deriving (Show)
 
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
-         fieldArea   :: (Int, Int),  -- the battle field of TETRIS' coordiante
-         markField   :: [Position]   -- 24 x 20
+         --fieldArea     :: (Int, Int),  -- the battle field of TETRIS' coordiante
+         currentBlock  :: Block
+         backupBlock   :: Block
+         markField     :: [Position]   -- 24 x 20
          } deriving (Show)
