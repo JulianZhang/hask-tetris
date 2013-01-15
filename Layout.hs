@@ -4,8 +4,8 @@ import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Gdk.EventM
 
 import Structure
-import Logic(getAndSet)
-import  
+--import Logic
+--import Signal
 
 maxRows        = 24 :: Int
 maxColumns     = 18 :: Int
@@ -20,7 +20,7 @@ canvasHeight = cellSize * maxRows
 coordinateTransform :: Position -> (Int, Int)
 coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
 
-initTetrisLayout :: DrawInfo
+initTetrisLayout :: IO DrawInfo
 initTetrisLayout = do
 
     initGui
@@ -77,6 +77,7 @@ initTetrisLayout = do
     windowSetDefaultSize mainWindow' 640 480
 
     initTime' <- getCurrentTime
+    (getTimerId,setTimerId) <- getAndSet Nothing
 
     return LayoutInfo {
                  mainWindow  =   mainWindow'   , 
@@ -93,5 +94,15 @@ initTetrisLayout = do
                  restartB    =   restartB'     , 
                  infoB       =   infoB'        , 
                  quitB       =   quitB'        ,
-                 initTime    =   initTime'
-                }   
+                 initTime    =   initTime'     ,
+                 timerId     =   (getTimerId, setTimerId)
+                 }   
+
+
+-- closure
+getAndSet :: a -> IO (IO a, a -> IO ())
+getAndSet a = do
+    ior <- newIORef a
+    let get = readIORef ior
+    let set = writeIORef ior
+    return (get,set)

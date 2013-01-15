@@ -9,22 +9,17 @@ import Data.IORef
 import Structure
 
 -- | this is the interface
+blockEmpty = Block { shapeV = head shapeVList, color = head colorList, markField = [] }
+
 initFieldData :: DrawInfo -> IO (DrawInfo, IORef Field)
 initFieldData drawInfo = do
-          let field = Field { currentBlock = blockEmpty, backupBlock = blockEmpty, markField = []}
-              backupBlock  = getNewBackupBlock drawInfo field
-              currentBlock = getNewBackupBlock drawInfo field
-              field {currentBlock = currentBlock, backupBlock = backupBlock}
-          refField <- newIORef field
+          backupBlock  <- getNewBackupBlock drawInfo
+          currentBlock <- getNewBackupBlock drawInfo
+          refField <- newIORef $ Field {bGameOver = False, currentBlock = currentBlock, 
+                                        backupBlock = backupBlock,  markField = []     }
           return (drawInfo, refField)
 
-getAndSet :: a -> IO (IO a, a -> IO ())
-getAndSet a = do
-    ior <- newIORef a
-    let get = readIORef ior
-    let set = writeIORef ior
-    return (get,set)
-
+-- some constants
 maxRows   = 24 :: Int
 maxColumn = 18 :: Int
 
@@ -68,10 +63,41 @@ initPosition = [ [(9,0),(10,0),(9,1),(10,1)],  [(8,0),(9,0),(10,0),(11,0),],
 
 colorList    = [ ] -- all kinds of colors!!
 
-{-| it take the current positions and expected refiant NO.
+down  = Position { xp = 0,  yp = 1) } 
+left  = Position { xp =-1,  yp = 0) } 
+right = Position { xp = 1,  yp = 0) } 
+up    = Position { xp =-10, yp =-10) } 
+
+
+{-| it take the current positions and expected variant NO.
     return new positions of the block.
     find the header postion first, should take Boundary into consideration.
 -}
+
+moveAround :: Position -> Block -> Field -> (Block, Bool)
+moveAround around block field = 
+         | around == up   = canTransform block field
+         | around == down = let (block', canMove) = checkMove around block field
+                             in (block', canMove && (not . isReachBottom $ block'))
+         | otherwise = checkMove around block field
+         where 
+         isReachBottom :: Block -> Bool
+         isReachBottom block = let yps = map yp $ coordinate block
+                                in or . map ( == (maxRows -1)) $ yps
+         checkMove around block field =
+                       let newP = map (around +) $ coordinate block
+                           newBlock = block {coordinate = newP}
+                           markP    = markField field
+                       in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
+
+               
+
+-- transform is special case of moveAround
+canTransform :: Block -> Field -> (Block, Bool)
+canTransform block field = let newBlock =  getNextTransformBlock block
+                               newp     = coordinat newBlock
+                               markP    = markField field
+                            in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
 
 getNextTransformBlock :: Block -> Block
 getNextTransformBlock    block
@@ -90,35 +116,8 @@ transform ps n m  = let (x1, y1) = head ps
                     where 
                     coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
--- | real check function that return Bool
-
--- move down
--- first check whther reach bottom
-down  = Position { xp = 0,  yp = 1) } 
-left  = Position { xp =-1,  yp = 0) } 
-right = Position { xp = 1,  yp = 0) } 
-up    = Position { xp =-10, yp =-10) } 
-
-isReachBottom :: Block -> Bool
-isReachBottom block = let yps = map yp $ coordinate block
-                       in or . map ( == (maxRows -1)) $ yps
-
-moveAround :: Position -> Block -> Field -> (Block, Bool)
-moveAround around block field = 
-              let newP = map (around +) $ coordinate block
-                         newBlock = block {coordinate = newP}
-                         markP    = markField field
-               in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
-
--- transform
-canTransform :: Block -> Field -> (Block, Bool)
-canTransform block field = let newBlock =  getNextTransformBlock block
-                               newp     = coordinat newBlock
-                               markP    = markField field
-                            in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
-
 -- | update field 
--- when cannot move down or isReachBottom, we update this.
+-- when cannot move down and isReachBottom, we update this.
 addToField :: Block -> Field -> Field
 addToField block field = let ps = coordinate block
                           in filed { markField = union (markField field) ps }
@@ -134,8 +133,8 @@ meltBlocks field = let markP = markField field
                                 \ y -> (sum . filter (== y . yp) $ markP) == columnSum
                     -- less than y's rwo, move down first and update field
                     in case length sortY == 0 of
-                             True  -> field
-                             False -> field { markField =  foldl step markP sortY }
+                             True  -> Field
+                             False -> Just $ field { markField =  foldl step markP sortY }
 
                     where step ps y = let ps' = filter ( /= y . yp ) ps
                                        in map (ltYPlusOne y) ps'
@@ -144,43 +143,50 @@ meltBlocks field = let markP = markField field
                                                 Flase -> p
 
 -- when yp = 0, this is called after meltBlocks
-blockEmpty = Block { shapeV = head shapeVList, color = head colorList, markField = [] }
-
 isGameOver :: Field -> Bool
 isGameOver filed = (length . filter ( (== 0) . yp ) $ markField filed) > 0
 
-getNewBackupBlock :: (DrawInfo, Field) -> IO (DrawInfo, Field)
-getNewBackupBlock drawInfo field = do
+getNewBackupBlock :: DrawInfo -> IO Block
+getNewBackupBlock drawInfo = do
          time' <- getCurrentTime
-         let timeSeed = truncat . (* 1000000) . diffTime $ time' $ initTime drawInfo :: Int
-             stdGen   = mkStdGen timeSeed
+         let timeSeed     = truncat . (* 1000000) . diffTime $ time' $ initTime drawInfo :: Int
+             stdGen       = mkStdGen timeSeed
              (si, newGen) = randomR (0,6) stdGen -- shapeIndex
              (ci, _)      = randomR (0,?) newGen -- colorIndex
              positions    = positionsFromList (initPositon !! si)
-         return $(drawInfo, Field { backupBlock = Block { shapeV  = shapeVList !! si, 
-                                                          color   = colorList  !! ci,
-                                                          coordinate = positions    }  }
+          return Block { shapeV  = shapeVList !! si, 
+                         color   = colorList  !! ci,
+                         coordinate = positions     }
          where positionsFromList []     = []
                positionsFromList (x:xs) = Position {xp = fst x, yp = snd x} : positionsFromList xs
                diffTime :: UTCTime -> UTCTime -> Double
                diffTime = (realToFrac .) . diffUTCTime
 
 
-drawMainArea drawInfo field val = do 
+drawMainArea drawInfo refField val = do 
     -- first update field status    
-    field <- readIORef refField                   
-    field <- updateStatus refField val
-    
-    (w,h) <- eventWindowSize
-    dw <- eventWindow
-    liftIO $ do
-      jam <- getJam
-      cars <- getCars
-      renderWithDrawable dw $ do
-                            translate (w/2) (h/2)
+    field      <- readIORef refField
+    maybeField <- updateStatus drawInfo field val
+    case maybeField of
+         Nothing     -> return ()
+         Just field' -> do
+                        writeIORef refField field'
+                        realMainRender drawInfo field'
+    where realMainRender drawInfo field = do
+              case bGameOver field of
+                   True  -> renderGameOver field
+                   False -> do
+                            renderField field
+                            (w,h) <- eventWindowSize
+                            dw <- eventWindow
+              liftIO $ do
+                jam <- getJam
+              cars <- getCars
+              renderWithDrawable dw $ do
+                                       translate (w/2) (h/2)
                             scale (w/drawSide) (h/drawSide)
                             road2render jam cars
-      return True
+    return True
 
 drawPreviewArea drawInfo refField = do 
                 field <- readIORef refField                   
@@ -198,12 +204,43 @@ keyboardReact drawInfo refField =
                       liftIO $ drawMainArea    drawInfo refField kv
                       liftIO $ drawPreviewArea drawInfo refField
                       
--- updateStatus : key function , also update the 'level & score'
--- val
-updateStatus :: Word32 -> IORef Field -> IORef Field
-updateStatus val refField = 
+-- updateStatus : key function , also update the 'level & score' in future
 
+-- should we put them all in a Maybe monad? yes, I think
+updateStatus :: DrawInfo -> Field ->  Word32 -> IO (Maybe Field)
+updateStatus drawInfo field val = do
+       let  maybeDir = ketToDirection val 
+       case maybeDir of
+            Nothing  -> return Nothing
+            Just dir -> do 
+                 let (block', canMove) = moveAround dir (currentBlock field)
+                 case canMove of
+                   Flase -> case dir == down of
+                              False -> return Nothing -- not downward cannot move
+                              -- downward cannot move, so we add this to markField
+                              True  -> do
+                                    field' <- blockTransact drawInfo field
+                                    let field'' = meltBlocks field'
+                                    case isGameOver field'' of
+                                         True  -> return $ Just field'' {bGameOver = True}
+                                         False -> return $ Just field''
+                                                   
+                   -- can move or transform     
+                   True  -> return $ field' = field { currentBlock = block' }
 
+    where blockTransact drawInfo field = do
+               let field' = addToField (currentBlock field) field
+               backupBlock' <- getNewBackupBlock drawInfo
+               return $ field' {currentBlock = (backupBlock field), backupBlock = backupBlock'}
+
+          keyToDirection :: Word32 -> Maybe Position
+          ketTODirection val = case val of
+                          0xFF51         -> Just left
+                          0xFF52         -> Just up
+                          0xFF53         -> Just right
+                          0xFF54         -> Just down 
+                          (-1) :: Word32 -> Just down
+                          _              -> Nothing 
 
 
 

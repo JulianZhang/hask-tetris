@@ -1,4 +1,4 @@
-module Signal where
+module Signal where (registerSignals, runTetris)
 
 import Graphics.GUI.Gtk
 import Data.IORef
@@ -27,7 +27,7 @@ registerSignals drawInfo refField = do
 
     mainWindow `on` keyPressEvent $ keyboardReact drawInfo refField
 
-runTetris :: (DrawInfo, MVar Field) -> IO ()
+runTetris :: (DrawInfo, IORef Field) -> IO ()
 runTetris (drawInfo, _ ) = do
           run drawInfo
           widgetShowAll (mainWindow drawInfo)
@@ -49,9 +49,12 @@ run   drawInfo = do
                  handler <- flip timeoutAdd 33
                             ( widgetQueueDraw drawingArea >> 
                              widgetQueueDraw previewArea >> return True )
-                 tryTakeMVar >> putMVar handler 
+                 let (_, setTimerId) = timerId drawInfo
+                 setTimerId handler
                   
-pause drawInfo = tryTakeMVar timerId >>= maybe (return ()) timeoutRemove
+pause drawInfo = do 
+                 let (getTimerId, _) = timerId drawInfo
+                 getTimerId >>= maybe (return ()) timeoutRemove
 
 showInfo = do
     ad <- aboutDialogNew

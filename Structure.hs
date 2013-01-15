@@ -23,7 +23,7 @@ data LayoutInfo = LayoutInfo {
           infoB          :: Button
           quitB          :: Button
           initTime       :: UTCTime
-          timerId        :: IORef HandlerId
+          timerId        :: (IO HandlerId, Handler -> IO ())
           } deriving (Show)
 
 data Shape = I | J | L | O | S | Z | T 
@@ -42,7 +42,7 @@ instance Show ShapeV where
 data Position = Position {
                 xp ::  Int,
                 yp ::  Int
-                } deriving (Show)
+                } deriving (Show, Eq)
 
 instance Num Position where 
      a + b = Position ( xp = xp a + xp b, yp = yp a + yp b)
@@ -63,6 +63,7 @@ data Block = Block {
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
          --fieldArea     :: (Int, Int),  -- the battle field of TETRIS' coordiante
+         bGameOver     :: Bool
          currentBlock  :: Block
          backupBlock   :: Block
          markField     :: [Position]   -- 24 x 20

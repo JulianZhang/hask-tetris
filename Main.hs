@@ -3,5 +3,5 @@ import Logic
 import Structure
 
 main :: IO ()
-main = initTetrisLayout >>== initFieldData >>== registerSingals >> runTetris
+main = initTetrisLayout >>== initFieldData >>== registerSingals >>= runTetris
      
