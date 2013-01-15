@@ -2,7 +2,10 @@ module Layout where
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Gdk.EventM
-import Graphics.Rendering.Cairo
+
+import Structure
+import Logic(getAndSet)
+import  
 
 maxRows        = 24 :: Int
 maxColumns     = 18 :: Int

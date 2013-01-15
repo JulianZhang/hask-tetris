@@ -1,33 +1,31 @@
 module Signal where
 
 import Graphics.GUI.Gtk
+import Data.IORef
+
 import Layout
 import Structure
 import Logic
 
--- field connect Logic, layout and render.
-
--- type HandlerId = CUInt
-timerId  = MVar (fromInteger 0) :: MVar HandlerId
+-- for regular timeout, we pass stepDown to the drawing part.
 stepDown = (-1) :: Word32
 
-registerSignals :: (DrawInfo, MVar Field) -> IO ()
-registerSignals drawInfo varField = do
+registerSignals :: (DrawInfo, IORef Field) -> IO ()
+registerSignals drawInfo refField = do
 
     mainWindow drawInfo `on`        objectDestroy mainQuit
     pauseB     drawInfo `onClicked` pauseButtonAffair drawInfo
-    restartB   drawInfo `onClicked` reset    drawInfo field
+    restartB   drawInfo `onClicked` reset    drawInfo refField
     infoB      drawInfo `onClicked` showInfo
     quitB      drawInfo `onClicked` ( widgetDestroy mainWindow >> mainQuit )
 
     widgetAddEvents (drawingArea drawInfo) [PointerMotionMask]
     widgetAddEvents (previewArea drawInfo) [PointerMotionMask]
 
-    drawingArea drawInfo `on` exposeEvent drawMainArea     drawInfo field stepDown
-    previewArea drawInfo `on` exposeEvent drawSPreviewArea drawInfo field
+    drawingArea drawInfo `on` exposeEvent drawMainArea     drawInfo refField stepDown
+    previewArea drawInfo `on` exposeEvent drawSPreviewArea drawInfo refField
 
-    mainWindow `on` keyPressEvent $ keyboardReact drawInfo field
-
+    mainWindow `on` keyPressEvent $ keyboardReact drawInfo refField
 
 runTetris :: (DrawInfo, MVar Field) -> IO ()
 runTetris (drawInfo, _ ) = do
@@ -63,5 +61,3 @@ showInfo = do
     aboutDialogSetComments ad $ "Heading For There"
     dialogRun              ad
     widgetDestroy          ad
-
-

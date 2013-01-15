@@ -1,9 +1,10 @@
 module Structure where
 
 import Graphics.UI.Gtk
-import Control.Concurrent
+import Data.Time.Clock
 import Data.List
-import qualified Data.Map as M
+import Data.IORef
+
 
 -- draw part should be totally separated from the logic
 data LayoutInfo = LayoutInfo {
@@ -21,6 +22,8 @@ data LayoutInfo = LayoutInfo {
           restartB       :: Button
           infoB          :: Button
           quitB          :: Button
+          initTime       :: UTCTime
+          timerId        :: IORef HandlerId
           } deriving (Show)
 
 data Shape = I | J | L | O | S | Z | T 

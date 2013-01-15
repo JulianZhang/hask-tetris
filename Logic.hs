@@ -1,31 +1,39 @@
-module Logic where (initFieldData, drawMainArea, drawPreviewArea, keyboardReact)
+module Logic where (initFieldData, drawMainArea, drawPreviewArea, keyboardReact, getAndSet)
 
+import Graphics.UI.Gtk
+import Graphics.Rendering.Cairo
 import System.Random
 import Data.List
+import Data.IORef
 
 import Structure
 
-
 -- | this is the interface
-initFieldData :: DrawInfo -> IO (DrawInfo, MVar Field)
+initFieldData :: DrawInfo -> IO (DrawInfo, IORef Field)
 initFieldData drawInfo = do
           let field = Field { currentBlock = blockEmpty, backupBlock = blockEmpty, markField = []}
               backupBlock  = getNewBackupBlock drawInfo field
               currentBlock = getNewBackupBlock drawInfo field
-          varField <- newEmptyMVar field
-          return (drawInfo, field {currentBlock = currentBlock, backupBlock = backupBlock} )
+              field {currentBlock = currentBlock, backupBlock = backupBlock}
+          refField <- newIORef field
+          return (drawInfo, refField)
 
-
+getAndSet :: a -> IO (IO a, a -> IO ())
+getAndSet a = do
+    ior <- newIORef a
+    let get = readIORef ior
+    let set = writeIORef ior
+    return (get,set)
 
 maxRows   = 24 :: Int
 maxColumn = 18 :: Int
 
 -- relative positio, header position
 relativePO = [ [(0,0), (1,0), (0,1), (1,1)] ]
-headerPO   = [(0, 0)]
+headerPO   = [ (0, 0) ]
 
 relativePI = [ [(0,0), (1,0), (2,0),  (3,0) ], [(0,0), (0,-1), (0,-2), (0,-3)] ]
-headerPI   = [ (-3,3), (3, -3)]
+headerPI   = [ (-3,3), (3, -3) ]
 
 relativePL = [ [(0,0), (0,1),  (-1,1) , (-2,1)], [(0,0), (1,0), (1,1), (1,2)   ] ,
                [(0,0), (0,-1), (1,-1), (2, -1)], [(0,0), (-1,0),(-1,-1),(-1,-2)] ]
@@ -46,10 +54,9 @@ relativePT = [ [(0,0), (1,0), (2,0), (1,1)  ], [(0,0), (0,-1),(0,-2),(1,-1)] ,
 headerPT   = [ (-2,1), (1,1), (2,0), (0,2) ]
 
 relativeP = [ relativePO, relativePI, relativePL,  relativePJ, relativePS, relativePZ,  relativePT]
-headerP   = [ headerPO, headerPI, headerPL, headerPJ, headerPS, headerPZ,  headerPT]
+headerP   = [ headerPO,   headerPI,   headerPL,    headerPJ,   headerPS,   headerPZ,    headerPT]
 
 shapeVList   = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
-
                   -- O                         -- I                            
 initPosition = [ [(9,0),(10,0),(9,1),(10,1)],  [(8,0),(9,0),(10,0),(11,0),], 
                   -- L                         -- J
@@ -61,7 +68,7 @@ initPosition = [ [(9,0),(10,0),(9,1),(10,1)],  [(8,0),(9,0),(10,0),(11,0),],
 
 colorList    = [ ] -- all kinds of colors!!
 
-{-| it take the current positions and expected variant NO.
+{-| it take the current positions and expected refiant NO.
     return new positions of the block.
     find the header postion first, should take Boundary into consideration.
 -}
@@ -142,7 +149,6 @@ blockEmpty = Block { shapeV = head shapeVList, color = head colorList, markField
 isGameOver :: Field -> Bool
 isGameOver filed = (length . filter ( (== 0) . yp ) $ markField filed) > 0
 
-
 getNewBackupBlock :: (DrawInfo, Field) -> IO (DrawInfo, Field)
 getNewBackupBlock drawInfo field = do
          time' <- getCurrentTime
@@ -162,7 +168,9 @@ getNewBackupBlock drawInfo field = do
 
 drawMainArea drawInfo field val = do 
     -- first update field status    
-    field <- updateStatus field stepDown 
+    field <- readIORef refField                   
+    field <- updateStatus refField val
+    
     (w,h) <- eventWindowSize
     dw <- eventWindow
     liftIO $ do
@@ -174,27 +182,26 @@ drawMainArea drawInfo field val = do
                             road2render jam cars
       return True
 
-drawPreviewArea drawInfo field = do 
-      (w,h) <- eventWindowSize
-      dw <- eventWindow
-      -- reander preview area using backupBlock
+drawPreviewArea drawInfo refField = do 
+                field <- readIORef refField                   
+                (w,h) <- eventWindowSize
+                dw <- eventWindow
+                -- reander preview area using backupBlock
 
 
 --tryEvent :: EventM any () -> EventM any Bool
 --Execute an event handler and assume it handled the event unless it threw a pattern match exception. 
 
-keyboardReact drawInfo field = 
+keyboardReact drawInfo refField = 
                       do tryEvent $ do
                       kv  <- eventKeyVal
-                      liftIO $ drawMainArea    drawInfo field kv
-                      liftIO $ drawPreviewArea drawInfo field
-
-                      return True
+                      liftIO $ drawMainArea    drawInfo refField kv
+                      liftIO $ drawPreviewArea drawInfo refField
                       
 -- updateStatus : key function , also update the 'level & score'
 -- val
-updateStatus :: Word32 -> Field -> Field
-updateStatus val field = 
+updateStatus :: Word32 -> IORef Field -> IORef Field
+updateStatus val refField = 
 
 
 
