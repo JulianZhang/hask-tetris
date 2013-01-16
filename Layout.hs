@@ -16,10 +16,6 @@ cellBorderSize = 1  :: Int
 canvasWidth  = cellSize * maxColumns
 canvasHeight = cellSize * maxRows
 
--- get the coordinate used in 
-coordinateTransform :: Position -> (Int, Int)
-coordinateTransform p = ( (xp p) * cellSize, (yp p) * cellSize )
-
 initTetrisLayout :: IO DrawInfo
 initTetrisLayout = do
 

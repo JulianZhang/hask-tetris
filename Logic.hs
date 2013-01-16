@@ -7,10 +7,9 @@ import Data.List
 import Data.IORef
 
 import Structure
+import Render
 
 -- | this is the interface
-blockEmpty = Block { shapeV = head shapeVList, color = head colorList, markField = [] }
-
 initFieldData :: DrawInfo -> IO (DrawInfo, IORef Field)
 initFieldData drawInfo = do
           backupBlock  <- getNewBackupBlock drawInfo
@@ -19,11 +18,21 @@ initFieldData drawInfo = do
                                         backupBlock = backupBlock,  markField = []     }
           return (drawInfo, refField)
 
--- some constants
+-- | resetAll the tetris
+resetAll :: :: DrawInfo -> IORef Field -> IO ()
+resetAll drawInfo refField = do
+         backupBlock  <- getNewBackupBlock drawInfo
+         currentBlock <- getNewBackupBlock drawInfo
+         let field = Field {bGameOver = False, currentBlock = currentBlock, 
+                                        backupBlock = backupBlock,  markField = [] }
+         writeIORef refField
+
+
+-- | some constants
 maxRows   = 24 :: Int
 maxColumn = 18 :: Int
 
--- relative positio, header position
+-- | relative positio, header position
 relativePO = [ [(0,0), (1,0), (0,1), (1,1)] ]
 headerPO   = [ (0, 0) ]
 
@@ -74,6 +83,8 @@ up    = Position { xp =-10, yp =-10) }
     find the header postion first, should take Boundary into consideration.
 -}
 
+
+-- | the function to move down, left, right or do transform.
 moveAround :: Position -> Block -> Field -> (Block, Bool)
 moveAround around block field = 
          | around == up   = canTransform block field
@@ -92,31 +103,33 @@ moveAround around block field =
 
                
 
--- transform is special case of moveAround
+-- | transform is special case of moveAround up
 canTransform :: Block -> Field -> (Block, Bool)
 canTransform block field = let newBlock =  getNextTransformBlock block
                                newp     = coordinat newBlock
                                markP    = markField field
                             in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
+        where
+        getNextTransformBlock :: Block -> Block
+        getNextTransformBlock    block
+            = let (s, v)         = shapeV     block
+                  ps             = coordinate block
+                  ((_, n), m)    = filter ( == s . fst . fst) $ zip shapeVist [0..]     
+                  v'             = mod (v + 1) n
+                  ps'            = transform ps v' m
+               in Block { shapeV = {s, v'}, coordinate = ps' }
 
-getNextTransformBlock :: Block -> Block
-getNextTransformBlock    block
-    = let (s, v)         = shapeV     block
-          ps             = coordinate block
-          ((_, n), m)    = filter ( == s . fst . fst) $ zip shapeVist [0..]     
-          v'             = mod (v + 1) n
-          ps'            = transform ps v' m
-       in Block { shapeV = {s, v'}, coordinate = ps' }
+        transform ps n m  = let (x1, y1) = head ps
+                                (xh, yh) = (headerP !! m) !! n
+                                x1' = | x1 + xh <  0        = 0
+                                      | x1 + xh >= maxColum = maxColum -1
+                             in map $ coorPlus (x1', yh) $ (relativeP !! m) !! n
+                          
+        coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
-transform ps n m  = let (x1, y1) = head ps
-                        (xh, yh) = (headerP !! m) !! n
-                        x1' = | x1 + xh <  0        = 0
-                              | x1 + xh >= maxColum = maxColum -1
-                    in map $ coorPlus (x1', yh) $ (relativeP !! m) !! n
-                    where 
-                    coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
 -- | update field 
+
 -- when cannot move down and isReachBottom, we update this.
 addToField :: Block -> Field -> Field
 addToField block field = let ps = coordinate block
@@ -124,8 +137,6 @@ addToField block field = let ps = coordinate block
 
 -- we just check one row after another and update the field accordingly
 -- call this after addToField
-rows      = [0 .. (maxRows-1)]             :: [Int]
-columnSum = foldl (+) 0 [0..(maxColumn-1)] ::  Int
 
 meltBlocks :: Field -> Field
 meltBlocks field = let markP = markField field
@@ -141,6 +152,9 @@ meltBlocks field = let markP = markField field
                           ltYPlusOne y p = case yp p < y of
                                                 True  -> p { yp = yp p + 1}
                                                 Flase -> p
+
+                          rows      = [0 .. (maxRows-1)]             :: [Int]
+                          columnSum = foldl (+) 0 [0..(maxColumn-1)] ::  Int
 
 -- when yp = 0, this is called after meltBlocks
 isGameOver :: Field -> Bool
@@ -163,50 +177,16 @@ getNewBackupBlock drawInfo = do
                diffTime = (realToFrac .) . diffUTCTime
 
 
-drawMainArea drawInfo refField val = do 
-    -- first update field status    
-    field      <- readIORef refField
-    maybeField <- updateStatus drawInfo field val
-    case maybeField of
-         Nothing     -> return ()
-         Just field' -> do
-                        writeIORef refField field'
-                        realMainRender drawInfo field'
-    where realMainRender drawInfo field = do
-              case bGameOver field of
-                   True  -> renderGameOver field
-                   False -> do
-                            renderField field
-                            (w,h) <- eventWindowSize
-                            dw <- eventWindow
-              liftIO $ do
-                jam <- getJam
-              cars <- getCars
-              renderWithDrawable dw $ do
-                                       translate (w/2) (h/2)
-                            scale (w/drawSide) (h/drawSide)
-                            road2render jam cars
-    return True
 
-drawPreviewArea drawInfo refField = do 
-                field <- readIORef refField                   
-                (w,h) <- eventWindowSize
-                dw <- eventWindow
-                -- reander preview area using backupBlock
-
-
---tryEvent :: EventM any () -> EventM any Bool
---Execute an event handler and assume it handled the event unless it threw a pattern match exception. 
-
+-- | redraw the area acoording to the key press
 keyboardReact drawInfo refField = 
-                      do tryEvent $ do
+                      do tryEvent $ do --tryEvent :: EventM any () -> EventM any Bool
                       kv  <- eventKeyVal
-                      liftIO $ drawMainArea    drawInfo refField kv
-                      liftIO $ drawPreviewArea drawInfo refField
+                      -- must do main first, for it will refresh the field
+                      drawMainArea    drawInfo refField kv
+                      drawPreviewArea drawInfo refField
                       
--- updateStatus : key function , also update the 'level & score' in future
-
--- should we put them all in a Maybe monad? yes, I think
+-- | updateStatus : key function , also update the 'level & score' in future
 updateStatus :: DrawInfo -> Field ->  Word32 -> IO (Maybe Field)
 updateStatus drawInfo field val = do
        let  maybeDir = ketToDirection val 
@@ -243,21 +223,30 @@ updateStatus drawInfo field val = do
                           _              -> Nothing 
 
 
+-- | the draw functions, periodically draw the image or react to keypress
+drawMainArea drawInfo refField val = do 
+    -- first update field status    
+    field      <- readIORef refField
+    maybeField <- updateStatus drawInfo field val
+    case maybeField of
+         Nothing     -> return ()
+         Just field' -> do
+                        writeIORef refField field'
+                        realMainRender drawInfo field'
+                        return ()
+    where realMainRender drawInfo field = do
+              case bGameOver field of
+                   True  -> renderGameOver field
+                   False -> do
+                            renderField field
+                            (w,h) <- eventWindowSize
+                            dw <- eventWindow
+                            liftIO $ do tetrisMainRender dw field w h
 
--- resetAll 
 
-
-
-{-
-define XK_Home			0xFF50
-define XK_Left			0xFF51	/* Move left, left arrow */
-define XK_Up			0xFF52	/* Move up, up arrow */
-define XK_Right		0xFF53	/* Move right, right arrow */
-define XK_Down			0xFF54	/* Move down, down arrow */
-define XK_Prior		0xFF55	/* Prior, previous */
-define XK_Page_Up		0xFF55
-define XK_Next			0xFF56	/* Next */
-define XK_Page_Down		0xFF56
-define XK_End			0xFF57	/* EOL */
-define XK_Begin		0xFF58	/* BOL */
--}
+drawPreviewArea drawInfo refField = do 
+                field <- readIORef refField                   
+                (w,h) <- eventWindowSize
+                dw <- eventWindow
+                -- reander preview area using backupBlock
+                liftIO $ do tetrisPreviewRender dw field w h                
