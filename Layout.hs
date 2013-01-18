@@ -10,9 +10,6 @@ import Structure
 maxRows        = 24 :: Int
 maxColumns     = 18 :: Int
 
-cellSize       = 20 :: Int
-cellBorderSize = 1  :: Int
-
 canvasWidth  = cellSize * maxColumns
 canvasHeight = cellSize * maxRows
 

@@ -70,7 +70,12 @@ initPosition = [ [(9,0),(10,0),(9,1),(10,1)],  [(8,0),(9,0),(10,0),(11,0),],
                   -- T
                  [(9,0),(10,0),(11,0),(10,1)]                 ]
 
-colorList    = [ ] -- all kinds of colors!!
+
+-- after settled, the color turns to Grey. (draw field area can do this)
+-- 10 colors: Crimson, Indigo, Yellow, Orange, red, HotPink, Blue, DeepSkyBlue, DarkGreen
+colorList = [(0.86, 0.08, 0.24,0.8), (0.3, 0.0,  0.51,0.8), (1.0,  1.0,  0.0, 0.8), (1.0,  0.65, 0,   0.8),
+             (1.0,  0.0,  0.0, 0.8), (1.0, 0.41, 0.71,0.8), (0.0,  0.0,  1.0, 0.8), (0.86, 0.08, 0.24,0.8),
+             (0.0,  0.75, 1.0, 0.8), (0.0, 0.40, 0.0, 0.8), ] -- all kinds of colors!!
 
 down  = Position { xp = 0,  yp = 1) } 
 left  = Position { xp =-1,  yp = 0) } 
@@ -166,7 +171,7 @@ getNewBackupBlock drawInfo = do
          let timeSeed     = truncat . (* 1000000) . diffTime $ time' $ initTime drawInfo :: Int
              stdGen       = mkStdGen timeSeed
              (si, newGen) = randomR (0,6) stdGen -- shapeIndex
-             (ci, _)      = randomR (0,?) newGen -- colorIndex
+             (ci, _)      = randomR (0,9) newGen -- colorIndex
              positions    = positionsFromList (initPositon !! si)
           return Block { shapeV  = shapeVList !! si, 
                          color   = colorList  !! ci,
