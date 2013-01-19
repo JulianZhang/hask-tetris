@@ -1,4 +1,4 @@
-module Logic where (initFieldData, drawMainArea, drawPreviewArea, keyboardReact, getAndSet)
+module Logic where --(initFieldData, drawMainArea, drawPreviewArea, keyboardReact)
 
 import Graphics.UI.Gtk
 import Graphics.Rendering.Cairo
@@ -10,7 +10,7 @@ import Structure
 import Render
 
 -- | this is the interface
-initFieldData :: DrawInfo -> IO (DrawInfo, IORef Field)
+initFieldData :: LayoutInfo -> IO (LayoutInfo, IORef Field)
 initFieldData drawInfo = do
           backupBlock  <- getNewBackupBlock drawInfo
           currentBlock <- getNewBackupBlock drawInfo
@@ -19,7 +19,7 @@ initFieldData drawInfo = do
           return (drawInfo, refField)
 
 -- | resetAll the tetris
-resetAll :: :: DrawInfo -> IORef Field -> IO ()
+resetAll :: :: LayoutInfo -> IORef Field -> IO ()
 resetAll drawInfo refField = do
          backupBlock  <- getNewBackupBlock drawInfo
          currentBlock <- getNewBackupBlock drawInfo
@@ -165,7 +165,7 @@ meltBlocks field = let markP = markField field
 isGameOver :: Field -> Bool
 isGameOver filed = (length . filter ( (== 0) . yp ) $ markField filed) > 0
 
-getNewBackupBlock :: DrawInfo -> IO Block
+getNewBackupBlock :: LayoutInfo -> IO Block
 getNewBackupBlock drawInfo = do
          time' <- getCurrentTime
          let timeSeed     = truncat . (* 1000000) . diffTime $ time' $ initTime drawInfo :: Int
@@ -192,7 +192,7 @@ keyboardReact drawInfo refField =
                       drawPreviewArea drawInfo refField
                       
 -- | updateStatus : key function , also update the 'level & score' in future
-updateStatus :: DrawInfo -> Field ->  Word32 -> IO (Maybe Field)
+updateStatus :: LayoutInfo -> Field ->  Word32 -> IO (Maybe Field)
 updateStatus drawInfo field val = do
        let  maybeDir = ketToDirection val 
        case maybeDir of

@@ -2,21 +2,16 @@ module Layout where
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.Gdk.EventM
-
+import Data.IORef
+import Data.Time.Clock
 import Structure
---import Logic
---import Signal
 
 maxRows        = 24 :: Int
 maxColumns     = 18 :: Int
 
-canvasWidth  = cellSize * maxColumns
-canvasHeight = cellSize * maxRows
-
-initTetrisLayout :: IO DrawInfo
+initTetrisLayout :: IO LayoutInfo
 initTetrisLayout = do
-
-    initGui
+    initGUI
     mainWindow'   <-  windowNew
     drawingArea'  <-  drawingAreaNew
     previewArea'  <-  drawingAreaNew
@@ -27,20 +22,20 @@ initTetrisLayout = do
     infoB'        <- buttonNewFromStock stockAbout
     quitB'        <- buttonNewFromStock stockQuit
     hButtonBox'   <- hButtonBoxNew
-    containerAdd vButtonBox' pauseB'
-    containerAdd vButtonBox' restartB'
-    containerAdd vButtonBox' infoB'
-    containerAdd vButtonBox' quitB'
+    containerAdd hButtonBox' pauseB'
+    containerAdd hButtonBox' restartB'
+    containerAdd hButtonBox' infoB'
+    containerAdd hButtonBox' quitB'
 
     -- score labels
-    strScore     <- labelNewWithMnemonic "__S.C.O.R.E"
-    strScore     <- labelNewWithMnemonic "__L.E.V.E.L"
-    labelScore   <- labelNew $ Just "0"
-    labelLevel   <- labelNew $ Just "0"
-    upperPad     <- labelNew $ Nothing
+    strScore'     <- labelNewWithMnemonic "S C O R E"
+    strLevel'     <- labelNewWithMnemonic "L E V E L"
+    labelScore'   <- labelNew $ Just "0"
+    labelLevel'   <- labelNew $ Just "0"
+    upperPad'     <- labelNew $ Nothing
 
     -- we put the drawArea upon a frame
-    aFrame' <- aspectFrameNew 0.5 0.5 (Just (maxColumns / maxRows))
+    aFrame' <- aspectFrameNew 0.5 0.5 (Just (fromIntegral maxColumns / fromIntegral maxRows))
     frameSetShadowType aFrame' ShadowNone
     containerAdd aFrame' drawingArea'
 
@@ -50,11 +45,11 @@ initTetrisLayout = do
     hBoxMain'     <- hBoxNew False 1
 
     -- preview and score labels put in the right side
-    containerAdd vBoxSub' previewArea' PackGrow    0
-    containerAdd vBoxSub' strScore'    PackNatural 0
-    containerAdd vBoxSub' labelScore'  PackNatural 0
-    containerAdd vBoxSub' strLevel'    PackNatural 0
-    containerAdd vBoxSub' labelLevel'  PackNatural 0
+    boxPackStart vBoxSub' previewArea' PackGrow    0
+    boxPackStart vBoxSub' strScore'    PackNatural 0
+    boxPackStart vBoxSub' labelScore'  PackNatural 0
+    boxPackStart vBoxSub' strLevel'    PackNatural 0
+    boxPackStart vBoxSub' labelLevel'  PackNatural 0
 
     -- aFrame and vBoxSub are put into a hBox
     boxPackStart hBoxMain' aFrame'     PackGrow    0

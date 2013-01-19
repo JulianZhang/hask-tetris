@@ -1,6 +1,6 @@
-module Signal where (registerSignals, runTetris)
+module Signal where --(registerSignals, runTetris)
 
-import Graphics.GUI.Gtk
+import Graphics.UI.Gtk
 import Data.IORef
 
 import Layout
