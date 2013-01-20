@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, NamedFieldPuns #-}
 
 module Logic where --(initFieldData, drawMainArea, drawPreviewArea, keyboardReact)
 
@@ -29,7 +29,7 @@ resetAll layoutInfo refField = do
          currentBlock <- getNewBackupBlock layoutInfo
          let field = Field {bGameOver = False, currentBlock = currentBlock, 
                                         backupBlock = backupBlock,  markField = [] }
-         writeIORef refField
+         writeIORef refField field
 
 
 -- | some constants
@@ -97,7 +97,7 @@ up    = Position { xp =(-10), yp =(-10)}
 moveAround :: Position -> Block -> Field -> (Block, Bool)
 moveAround around block field = case around of
                 up    -> canTransform block field
-                down  -> let (block', canMove) = checkMove around block field
+                down  -> let (block', canMove) = checkMove down block field
                          in (block', canMove && (not . isReachBottom $ block'))
                 other -> checkMove other block field
          where 
@@ -108,7 +108,7 @@ moveAround around block field = case around of
                        let newP = map (around +) $ coordinate block
                            newBlock = block {coordinate = newP}
                            markP    = markField field
-                       in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
+                       in (newBlock, not . or . map (\p -> elem p markP ) $ newP)
 
                
 
@@ -117,25 +117,25 @@ canTransform :: Block -> Field -> (Block, Bool)
 canTransform block field = let newBlock =  getNextTransformBlock block
                                newP     = coordinate newBlock
                                markP    = markField  field
-                            in (newBlock, not . or . map (\p -> any (elem p) markP ) $ newP)
+                            in (newBlock, not . or . map (\p -> elem p markP ) $ newP)
         where
         getNextTransformBlock :: Block -> Block
         getNextTransformBlock    block
-            = let (s, v)         = shapeV     block
+            = let ShapeV (s, v)  = shapeV     block
                   ps             = coordinate block
-                  ((_, n), m)    = filter ( == s . fst . fst) $ zip shapeVList [0..]     
+                  ((_, n), m)    = head . filter ( (== s) . fst . fst) $ zip shapeVList [0..]     
                   v'             = mod (v + 1) n
                   ps'            = transform ps v' m
-               in Block {shapeV = (s, v'), coordinate = ps'}
+               in Block {shapeV = ShapeV (s, v'), coordinate = ps' }
 
-        transform ps n m  = let (x1, y1) = head ps
+        transform ps n m  = let Position {xp=x1, yp=y1} = head ps
                                 (xh, yh) = (headerP !! m) !! n
                                 x1'  | x1 + xh <  0        = 0
                                      | x1 + xh >= maxColumns = maxColumns -1
-                             in map $ coorPlus (x1', yh) $ (relativeP !! m) !! n
+                             in map ( toPosition . coorPlus (x1', yh)) $ (relativeP !! m) !! n
                           
         coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-
+        toPosition (x, y) = Position {xp = x, yp =y}
 
 -- | update field 
 
