@@ -42,6 +42,7 @@ data Field = Field {
 
 
 data Shape = I | J | L | O | S | Z | T 
+             deriving (Eq)
 
 -- shape variants. make it instance Show?
 data ShapeV = ShapeV (Shape, Int) -- shape and their transformers, represent by Int

@@ -126,7 +126,7 @@ canTransform block field = let newBlock =  getNextTransformBlock block
                   ((_, n), m)    = head . filter ( (== s) . fst . fst) $ zip shapeVList [0..]     
                   v'             = mod (v + 1) n
                   ps'            = transform ps v' m
-               in Block {shapeV = ShapeV (s, v'), coordinate = ps' }
+               in block {shapeV = ShapeV (s, v'), coordinate = ps' }
 
         transform ps n m  = let Position {xp=x1, yp=y1} = head ps
                                 (xh, yh) = (headerP !! m) !! n
@@ -150,13 +150,13 @@ addToField block field = let ps = coordinate block
 meltBlocks :: Field -> Field
 meltBlocks field = let markP = markField field
                        sortY =  sort . flip filter rows $ 
-                                \ y -> (sum . filter (== y . yp) $ markP) == columnSum
+                                \ y -> (yp . sum . filter ( (== y) . yp) $ markP) == columnSum
                     -- less than y's rwo, move down first and update field
                     in case length sortY == 0 of
-                             True  -> Field
-                             False -> Just $ field { markField =  foldl step markP sortY }
+                             True  -> field
+                             False -> field { markField =  foldl step markP sortY }
 
-                    where step ps y = let ps' = filter ( /= y . yp ) ps
+                    where step ps y = let ps' = filter ( (/= y) . yp ) ps
                                        in map (ltYPlusOne y) ps'
                           ltYPlusOne y p = case yp p < y of
                                                 True  -> p { yp = yp p + 1}
@@ -172,12 +172,12 @@ isGameOver filed = (length . filter ( (== 0) . yp ) $ markField filed) > 0
 getNewBackupBlock :: LayoutInfo -> IO Block
 getNewBackupBlock layoutInfo = do
          time' <- getCurrentTime
-         let timeSeed     = truncate . (* 1000000) . diffTime $ time' $ initTime layoutInfo :: Int
+         let timeSeed     = truncate . (* 1000000) . diffTime time' $ initTime layoutInfo :: Int
              stdGen       = mkStdGen timeSeed
              (si, newGen) = randomR (0,6) stdGen -- shapeIndex
              (ci, _)      = randomR (0,9) newGen -- colorIndex
              positions    = positionsFromList (initPosition !! si)
-         return $ Block { shapeV  = shapeVList !! si, 
+         return $ Block { shapeV  = ShapeV (shapeVList !! si), 
                           color   = colorList  !! ci,
                           coordinate = positions     }
          where positionsFromList []     = []
@@ -186,14 +186,6 @@ getNewBackupBlock layoutInfo = do
                diffTime = (realToFrac .) . diffUTCTime
 
 
-
--- | redraw the area acoording to the key press
-keyboardReact layoutInfo refField = 
-                      do tryEvent $ do --tryEvent :: EventM any () -> EventM any Bool
-                         kv  <- eventKeyVal
-                         -- must do main first, for it will refresh the field
-                         drawMainArea    layoutInfo refField kv
-                         drawPreviewArea layoutInfo refField
                       
 -- | updateStatus : key function , also update the 'level & score' in future
 updateStatus :: LayoutInfo -> Field ->  Word32 -> IO (Maybe Field)
@@ -202,7 +194,7 @@ updateStatus layoutInfo field val = do
        case maybeDir of
             Nothing  -> return Nothing
             Just dir -> do 
-                 let (block', canMove) = moveAround dir (currentBlock field)
+                 let (block', canMove) = moveAround dir (currentBlock field) field
                  case canMove of
                    False -> case dir == down of
                               False -> return Nothing -- not downward cannot move
@@ -215,7 +207,7 @@ updateStatus layoutInfo field val = do
                                          False -> return $ Just field''
                                                    
                    -- can move or transform     
-                   True  -> return $ field { currentBlock = block' }
+                   True  -> return $ Just $ field { currentBlock = block' }
 
          where blockTransact layoutInfo field = do
                     let field' = addToField (currentBlock field) field
@@ -247,23 +239,16 @@ drawMainArea layoutInfo refField val = do
               case bGameOver field of
                    True  -> return () --renderGameOver field
                    False -> do
-                            --renderField field
-                            (w,h) <- eventWindowSize
-                            dw <- eventWindow
-                            liftIO $ do tetrisMainRender dw field w h
+                            dr <- widgetGetDrawWindow $ drawingArea layoutInfo
+                            (w, h) <- widgetGetSize (aFrame layoutInfo) 
+                            tetrisMainRender field dr (fromIntegral w) (fromIntegral h)
+                            return ()
 
 
 drawPreviewArea layoutInfo refField = do 
-                field <- readIORef refField                   
-                (w,h) <- eventWindowSize
-                dw <- eventWindow
-                -- reander preview area using backupBlock
-                liftIO $ do tetrisPreviewRender dw field w h                
-
-
-eventWindowSize = do
-    dr <- eventWindow
-    (w,h) <- liftIO $ drawableGetSize dr
-    return $ if w*h > 1
-        then (fromIntegral w, fromIntegral h)
-        else (1,1)
+                field  <- readIORef refField                   
+                dr     <- widgetGetDrawWindow $ previewArea layoutInfo
+                (w, h) <- drawWindowGetOrigin dr
+                -- render preview area using backupBlock
+                tetrisPreviewRender field dr (fromIntegral w) (fromIntegral h)
+                return ()    
