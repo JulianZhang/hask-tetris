@@ -11,30 +11,31 @@ import Logic
 -- for regular timeout, we pass stepDown to the drawing part.
 stepDown = (-1) :: Word32
 
-registerSignals :: (LayoutInfo, IORef Field) -> IO ()
-registerSignals layoutInfo refField = do
-
-    mainWindow layoutInfo `on`        objectDestroy mainQuit
-    pauseB     layoutInfo `onClicked` pauseButtonAffair layoutInfo
-    restartB   layoutInfo `onClicked` resetAll  layoutInfo refField
-    infoB      layoutInfo `onClicked` showInfo
-    quitB      layoutInfo `onClicked` ( widgetDestroy mainWindow >> mainQuit )
+registerSignals :: (LayoutInfo, IORef Field) -> IO (LayoutInfo, IORef Field)
+registerSignals (layoutInfo, refField) = do
+    let window = mainWindow layoutInfo
+    on  window   objectDestroy mainQuit
+    (pauseB     layoutInfo) `onClicked` pauseButtonAffair layoutInfo
+    (restartB   layoutInfo) `onClicked` resetAll  layoutInfo refField
+    (infoB      layoutInfo) `onClicked` showInfo
+    (quitB      layoutInfo) `onClicked` (widgetDestroy window >> mainQuit )
 
     widgetAddEvents (drawingArea layoutInfo) [PointerMotionMask]
     widgetAddEvents (previewArea layoutInfo) [PointerMotionMask]
 
-    drawingArea layoutInfo `on` exposeEvent drawMainArea     layoutInfo refField stepDown
-    previewArea layoutInfo `on` exposeEvent drawPreviewArea layoutInfo refField
+    on (drawingArea layoutInfo) exposeEvent $ liftIO (drawMainArea layoutInfo refField stepDown)
+    on (previewArea layoutInfo) exposeEvent $ liftIO (drawPreviewArea layoutInfo refField)
 
-    mainWindow `on` keyPressEvent $ tryEvent $ do 
-                                    val <- eventKeyVal 
-                                    liftIO $ drawMainArea    layoutInfo refField val
-                                    liftIO $ drawPreviewArea layoutInfo refField
-                                    return ()
+    on window keyPressEvent $ tryEvent $ do 
+                              val <- eventKeyVal 
+                              liftIO $ drawMainArea    layoutInfo refField val
+                              liftIO $ drawPreviewArea layoutInfo refField
+                              return ()
+    return (layoutInfo, refField)
 
 runTetris :: (LayoutInfo, IORef Field) -> IO ()
 runTetris (layoutInfo, _ ) = do
-          run layoutInfo
+          runIt layoutInfo
           widgetShowAll (mainWindow layoutInfo)
           mainGUI
     
@@ -45,21 +46,25 @@ pauseButtonAffair layoutInfo = do
     onToggled pause $ do
               isPause <- toggleButtonGetActive pause
               case isPause of
-                   False -> run   layoutInfo
-                   True  -> pause layoutInfo
+                   False -> runIt   layoutInfo >> return ()
+                   True  -> pauseIt layoutInfo >> return ()
+    return ()
+                     
 
 --timeoutAdd IO Bool -> Int-> IO Handler
-run   layoutInfo = do
+runIt   layoutInfo = do
                  -- previewArea is drawed later for drawingMainArea will update the field
                  handler <- flip timeoutAdd 33
-                            ( widgetQueueDraw drawingArea >> 
-                             widgetQueueDraw previewArea >> return True )
+                            ( widgetQueueDraw (drawingArea layoutInfo) >> 
+                              widgetQueueDraw (previewArea layoutInfo) >> return True )
                  let (_, setTimerId) = timerId layoutInfo
-                 setTimerId handler
+                 setTimerId $ Just handler
+                 return ()
                   
-pause layoutInfo = do 
+pauseIt layoutInfo = do 
                  let (getTimerId, _) = timerId layoutInfo
                  getTimerId >>= maybe (return ()) timeoutRemove
+                 return ()
 
 showInfo = do
     ad <- aboutDialogNew

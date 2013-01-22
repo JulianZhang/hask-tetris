@@ -5,5 +5,5 @@ import Signal
 import Logic
 
 main :: IO ()
-main = initTetrisLayout >>== initFieldData >>== registerSingals >>= runTetris
+main = initTetrisLayout >>= initFieldData >>= registerSignals >>= runTetris >> return ()
      

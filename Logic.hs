@@ -130,8 +130,9 @@ canTransform block field = let newBlock =  getNextTransformBlock block
 
         transform ps n m  = let Position {xp=x1, yp=y1} = head ps
                                 (xh, yh) = (headerP !! m) !! n
-                                x1'  | x1 + xh <  0        = 0
+                                x1'  | x1 + xh <  0          = 0
                                      | x1 + xh >= maxColumns = maxColumns -1
+                                     | otherwise             = x1 + xh
                              in map ( toPosition . coorPlus (x1', yh)) $ (relativeP !! m) !! n
                           
         coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
@@ -235,6 +236,7 @@ drawMainArea layoutInfo refField val = do
                         writeIORef refField field'
                         realMainRender layoutInfo field'
                         return ()
+    return True
     where realMainRender layoutInfo field = do
               case bGameOver field of
                    True  -> return () --renderGameOver field
@@ -244,11 +246,10 @@ drawMainArea layoutInfo refField val = do
                             tetrisMainRender field dr (fromIntegral w) (fromIntegral h)
                             return ()
 
-
 drawPreviewArea layoutInfo refField = do 
                 field  <- readIORef refField                   
                 dr     <- widgetGetDrawWindow $ previewArea layoutInfo
                 (w, h) <- drawWindowGetOrigin dr
                 -- render preview area using backupBlock
                 tetrisPreviewRender field dr (fromIntegral w) (fromIntegral h)
-                return ()    
+                return True
