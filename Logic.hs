@@ -102,26 +102,25 @@ up    = Position { xp =(-10), yp =(-10)}
 
 -- | the function to move down, left, right or do transform.
 moveAround :: Position -> Block -> Field -> (Block, Bool)
-moveAround around block field = case around of
-                up    -> canTransform block field
-                down  -> let (block', canMove) = checkMove down block field
-                         in (block', canMove && (not . isReachBottom $ block'))
-                other -> checkMove other block field
-         where 
-         isReachBottom :: Block -> Bool
-         isReachBottom block = let yps = map yp $ coordinate block
-                                in or . map ( == (maxRows -1)) $ yps
-         checkMove around block field =
-                       let newP = map (around +) $ coordinate block
-                           newBlock = block {coordinate = newP}
-                           markP    = markField field
-                       in (newBlock, not . or . map (\p -> elem p markP ) $ newP)
+moveAround around block field 
+           | around == up   = canTransform block field
+           | around == down = let (block', canMove) = checkMove down block field
+                               in (block', canMove && (not . isReachBottom $ block'))
+           | otherwise      = checkMove around block field
+           where 
+           isReachBottom :: Block -> Bool
+           isReachBottom block = let yps = map yp $ coordinate block
+                                  in or . map ( == (maxRows -1)) $ yps
+           checkMove around block field =
+               let newP     = map (around +) $ coordinate block
+                   newBlock = block {coordinate = newP}
+                   markP    = markField field
+                in (newBlock, not . or . map (\p -> elem p markP ) $ newP)
 
-               
-
+              
 -- | transform is special case of moveAround up
 canTransform :: Block -> Field -> (Block, Bool)
-canTransform block field = let newBlock =  getNextTransformBlock block
+canTransform block field = let newBlock = getNextTransformBlock block
                                newP     = coordinate newBlock
                                markP    = markField  field
                             in (newBlock, not . or . map (\p -> elem p markP ) $ newP)
@@ -198,11 +197,14 @@ getNewBackupBlock layoutInfo = do
 -- | updateStatus : key function , also update the 'level & score' in future
 updateStatus :: LayoutInfo -> Field ->  Word32 -> IO (Maybe Field)
 updateStatus layoutInfo field val = do
-       let  maybeDir = keyToDirection val 
+       let  maybeDir = keyToDirection val
+       --print $ show maybeDir 
        case maybeDir of
             Nothing  -> return Nothing
             Just dir -> do 
                  let (block', canMove) = moveAround dir (currentBlock field) field
+                 print $ "before " ++ show (currentBlock field)
+                 print $ show canMove ++ " and after " ++ show dir ++ show block'
                  case canMove of
                    False -> case dir == down of
                               False -> return Nothing -- not downward cannot move
@@ -224,23 +226,24 @@ updateStatus layoutInfo field val = do
 
                keyToDirection :: Word32 -> Maybe Position
                keyToDirection val = case val of
-                                         0xFF51  -> Just left
-                                         0xFF52  -> Just up
-                                         0xFF53  -> Just right
-                                         0xFF54  -> Just down 
-                                         ((-1) :: Word32) -> Just down
-                                         _       -> Nothing 
+                                         0xFF51  -> Just left  -- `debug` "left"
+                                         0xFF52  -> Just up    -- `debug` "up"
+                                         0xFF53  -> Just right -- `debug` "right"
+                                         0xFF54  -> Just down  -- `debug` "down"
+                                         ((-1) :: Word32) -> Just down -- `debug` "down"
+                                         _       -> Nothing -- `debug` "not support key"
 
 
 -- | the draw functions, periodically draw the image or react to keypress
 drawMainArea layoutInfo refField val = do 
     -- first update field status    
-    print $ "draw main" ++ show val
+    -- print $ "draw main" ++ show val
     field      <- readIORef refField
     maybeField <- updateStatus layoutInfo field val
     case maybeField of
          Nothing     -> return ()
          Just field' -> do
+                        -- print field'
                         writeIORef refField field'
                         print $ markField field
                         realMainRender layoutInfo field'

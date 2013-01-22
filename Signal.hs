@@ -15,7 +15,7 @@ registerSignals :: (LayoutInfo, IORef Field) -> IO (LayoutInfo, IORef Field)
 registerSignals (layoutInfo, refField) = do
     let window = mainWindow layoutInfo
     on  window   objectDestroy mainQuit
-    (pauseB     layoutInfo) `onClicked` pauseButtonAffair layoutInfo
+    pauseButtonAffair layoutInfo
     (restartB   layoutInfo) `onClicked` resetAll  layoutInfo refField
     (infoB      layoutInfo) `onClicked` showInfo
     (quitB      layoutInfo) `onClicked` (widgetDestroy window >> mainQuit )
@@ -42,19 +42,19 @@ runTetris (layoutInfo, _ ) = do
 -- we need MVar to be passed.
 pauseButtonAffair layoutInfo = do
     let pause = pauseB layoutInfo
-    buttonSetUseStock pause True
+    buttonSetUseStock pause False
     onToggled pause $ do
               isPause <- toggleButtonGetActive pause
               case isPause of
-                   False -> runIt   layoutInfo >> return ()
-                   True  -> pauseIt layoutInfo >> return ()
+                   False -> runIt   layoutInfo 
+                   True  -> pauseIt layoutInfo
     return ()
                      
 
 --timeoutAdd IO Bool -> Int-> IO Handler
 runIt   layoutInfo = do
                  -- previewArea is drawed later for drawingMainArea will update the field
-                 handler <- flip timeoutAdd 33
+                 handler <- flip timeoutAdd 1000
                             ( widgetQueueDraw (drawingArea layoutInfo) >> 
                               widgetQueueDraw (previewArea layoutInfo) >> return True )
                  let (_, setTimerId) = timerId layoutInfo
@@ -71,6 +71,6 @@ showInfo = do
     aboutDialogSetName     ad $ "Hask-Tetris"
     aboutDialogSetVersion  ad $ "1.0"
     aboutDialogSetAuthors  ad $ ["Peng Xingtao " ++ "<peng.pxt@gmail.com>"]
-    aboutDialogSetComments ad $ "Heading For There"
+    aboutDialogSetComments ad $ "Heading For There, HardWater"
     dialogRun              ad
     widgetDestroy          ad

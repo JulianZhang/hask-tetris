@@ -10,9 +10,9 @@ data LayoutInfo = LayoutInfo {
           mainWindow     :: Window      , 
           vBoxMain       :: VBox         , 
           hBoxMain       :: HBox         , 
-          aFrame         :: AspectFrame , 
-          drawingArea    :: DrawingArea , 
-          vBoxSub        :: VBox         , 
+          aFrame         :: AspectFrame  , 
+          drawingArea    :: DrawingArea  , 
+          vBoxSub        :: VBox          , 
           previewArea    :: DrawingArea   , 
           labelScore     :: Label         , 
           labelLevel     :: Label         , 
@@ -21,23 +21,23 @@ data LayoutInfo = LayoutInfo {
           restartB       :: Button        , 
           infoB          :: Button        , 
           quitB          :: Button        , 
-          initTime       :: UTCTime       , 
-          timerId        :: (IO (Maybe HandlerId), (Maybe HandlerId) -> IO ())
+          initTime       :: !UTCTime       , 
+          timerId        :: !(IO (Maybe HandlerId), (Maybe HandlerId) -> IO ())
           }
 
 -- shape: use Int to represent
 data Block = Block {
-         shapeV       :: ShapeV,    -- shape type and current variant
-         color        :: (Double, Double, Double, Double),
-         coordinate   :: [Position] -- current postion, row and column coordinate, 4 units
+         shapeV       :: !ShapeV,    -- shape type and current variant
+         color        :: !(Double, Double, Double, Double),
+         coordinate   :: ![Position] -- current postion, row and column coordinate, 4 units
          } deriving (Show)
 
 -- we first use List, may change to Data.Vector in future.
 data Field = Field {
-         bGameOver     :: Bool  , 
-         currentBlock  :: Block , 
-         backupBlock   :: Block , 
-         markField     :: [Position]
+         bGameOver     :: !Bool  , 
+         currentBlock  :: !Block , 
+         backupBlock   :: !Block , 
+         markField     :: ![Position]
          } deriving (Show)
 
 
