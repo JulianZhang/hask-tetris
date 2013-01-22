@@ -9,9 +9,16 @@ import Data.List
 import Data.IORef
 import Data.Word(Word32)
 import Data.Time.Clock
+import Debug.Trace
 
 import Structure
 import Render
+
+debug = flip trace
+--debugShow = flip traceShow
+{-
+I've often also found the variation debug = (flip trace) False useful. If I have a guards-based function definition, I simply insert a (or multiple) | debug ("Interesting value is " ++ show whatever) = undefined as the first guard(s).
+ -}
 
 -- | this is the interface
 initFieldData :: LayoutInfo -> IO (LayoutInfo, IORef Field)
@@ -228,12 +235,14 @@ updateStatus layoutInfo field val = do
 -- | the draw functions, periodically draw the image or react to keypress
 drawMainArea layoutInfo refField val = do 
     -- first update field status    
+    print $ "draw main" ++ show val
     field      <- readIORef refField
     maybeField <- updateStatus layoutInfo field val
     case maybeField of
          Nothing     -> return ()
          Just field' -> do
                         writeIORef refField field'
+                        print $ markField field
                         realMainRender layoutInfo field'
                         return ()
     return True
@@ -243,6 +252,7 @@ drawMainArea layoutInfo refField val = do
                    False -> do
                             dr <- widgetGetDrawWindow $ drawingArea layoutInfo
                             (w, h) <- widgetGetSize (aFrame layoutInfo) 
+                            --print $ show w  ++ " " ++ show h
                             tetrisMainRender field dr (fromIntegral w) (fromIntegral h)
                             return ()
 
@@ -250,6 +260,7 @@ drawPreviewArea layoutInfo refField = do
                 field  <- readIORef refField                   
                 dr     <- widgetGetDrawWindow $ previewArea layoutInfo
                 (w, h) <- drawWindowGetOrigin dr
+                --print $ show w  ++ " " ++ show h
                 -- render preview area using backupBlock
                 tetrisPreviewRender field dr (fromIntegral w) (fromIntegral h)
                 return True

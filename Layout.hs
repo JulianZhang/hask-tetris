@@ -32,7 +32,7 @@ initTetrisLayout = do
     strLevel'     <- labelNewWithMnemonic "L E V E L"
     labelScore'   <- labelNew $ Just "0"
     labelLevel'   <- labelNew $ Just "0"
-    upperPad'     <- labelNew $ Nothing
+    upperPad'     <- labelNew $ Just "T E T R I S"
 
     -- we put the drawArea upon a frame
     aFrame' <- aspectFrameNew 0.5 0.5 (Just (fromIntegral maxColumns / fromIntegral maxRows))
@@ -54,8 +54,9 @@ initTetrisLayout = do
     -- aFrame and vBoxSub are put into a hBox
     boxPackStart hBoxMain' aFrame'     PackGrow    0
     boxPackStart hBoxMain' vBoxSub'    PackNatural 0
+
     boxPackStart vBoxMain' upperPad'   PackNatural 0 -- we add a upper pad.
-    boxPackStart vBoxMain' hBoxMain'   PackNatural 0
+    boxPackStart vBoxMain' hBoxMain'   PackGrow    0
     boxPackStart vBoxMain' hButtonBox' PackNatural 0
 
     -- we put it into window
