@@ -56,7 +56,7 @@ runIt   layoutInfo = do
                  -- previewArea is drawed later for drawingMainArea will update the field
                  handler <- flip timeoutAdd 1000
                             ( widgetQueueDraw (drawingArea layoutInfo) >> 
-                              widgetQueueDraw (previewArea layoutInfo) >> return True )
+                              widgetQueueDraw (previewArea layoutInfo) >> return True)
                  let (_, setTimerId) = timerId layoutInfo
                  setTimerId $ Just handler
                  return ()

@@ -8,15 +8,10 @@ import Data.IORef
 -- draw part should be totally separated from the logic
 data LayoutInfo = LayoutInfo {
           mainWindow     :: Window      , 
-          vBoxMain       :: VBox         , 
-          hBoxMain       :: HBox         , 
-          aFrame         :: AspectFrame  , 
           drawingArea    :: DrawingArea  , 
-          vBoxSub        :: VBox          , 
           previewArea    :: DrawingArea   , 
           labelScore     :: Label         , 
           labelLevel     :: Label         , 
-          hButtonBox     :: HButtonBox    , 
           pauseB         :: ToggleButton  , 
           restartB       :: Button        , 
           infoB          :: Button        , 
