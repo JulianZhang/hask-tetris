@@ -19,17 +19,16 @@ drawRectUnit (x, y, w, h) =  rectangle x y w h >> fillPreserve >> stroke
 
 tetrisPreviewRender field dw w h = renderWithDrawable dw $ do
                    let block = backupBlock field
-                       wUnit = w / 8
-                       hUnit = h / 6
+                       wUnit = w / 5
+                       hUnit = h / 5
                        coors = map (coordinateTransform wUnit hUnit) $ coordinate block -- we get the 4 coordinates
                        (r,g,b,a) = color block
                    setSourceRGBA r g b a
                    setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth (hUnit / 15))
-                   translate (w / 4) (3 * h / 4)
+                   translate (0) (0)
                    mapM drawRectUnit coors
 
-tetrisMainRender field dw w h= 
-           renderWithDrawable dw $ do
+tetrisMainRender field dw w h= renderWithDrawable dw $ do
                 let block = currentBlock field
                     wUnit = w / (fromIntegral maxColumns)
                     hUnit = h / (fromIntegral maxRows)

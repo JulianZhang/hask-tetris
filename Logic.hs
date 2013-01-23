@@ -10,6 +10,7 @@ import Data.IORef
 import Data.Word(Word32)
 import Data.Time.Clock
 import Debug.Trace
+import Control.Concurrent(threadDelay)
 
 import Structure
 import Render
@@ -24,6 +25,7 @@ I've often also found the variation debug = (flip trace) False useful. If I have
 initFieldData :: LayoutInfo -> IO (LayoutInfo, IORef Field)
 initFieldData layoutInfo = do
           backupBlock  <- getNewBackupBlock layoutInfo
+          threadDelay 1000
           currentBlock <- getNewBackupBlock layoutInfo
           refField <- newIORef $ Field {bGameOver = False, currentBlock = currentBlock, 
                                         backupBlock = backupBlock,  markField = []     }
@@ -247,8 +249,8 @@ drawMainArea layoutInfo refField val = do
                         writeIORef refField field'
                         print $ markField field
                         realMainRender layoutInfo field'
-                        return ()
     return True
+
     where realMainRender layoutInfo field = do
               case bGameOver field of
                    True  -> return () --renderGameOver field

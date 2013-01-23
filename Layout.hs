@@ -61,7 +61,7 @@ initTetrisLayout = do
 
     align' <- alignmentNew 0 0 0 0
     containerAdd align' labelLevel'
-    tableAttach  table' align' 1 2 2 3 [] [Fill, Expand] 0 0    
+    tableAttach  table' align' 1 2 2 3 [] [Expand, Fill] 0 0    
 
     -- hButtonBox packing
     tableAttach  table' hButtonBox' 0 2 3 4 [Fill] [] 0 10
