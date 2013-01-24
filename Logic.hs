@@ -137,22 +137,17 @@ canTransform block field = let newBlock = getNextTransformBlock block
                   ps'            = transform ps v' m
                in block {shapeV = ShapeV (s, v'), coordinate = ps' }
 
-        transform ps n m  = let Position {xp=x1, yp=y1} = head ps
+        transform ps n m = let  p = head ps
                                 (xh, yh) = (headerP !! m) !! n
-                                x1'  | x1 + xh <  0          = 0
-                                     | x1 + xh >= maxColumns = maxColumns -1
-                                     | otherwise             = x1 + xh
-                             in map ( toPosition . coorPlus (x1', yh)) $ (relativeP !! m) !! n
+                                x1'  | (xp p) + xh <= 0          = 0
+                                     | (xp p) + xh >= maxColumns = maxColumns -1
+                                     | otherwise                 = (xp p) + xh
+                             in map ( toPosition . coorPlus (x1', yp p)) $ (relativeP !! m) !! n
                           
         coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
         toPosition (x, y) = Position {xp = x, yp =y}
 
--- | update field 
-
--- when cannot move down and isReachBottom, we update this.
-addToField :: Block -> Field -> Field
-addToField block field = let ps = coordinate block
-                          in field { markField = union (markField field) ps }
+-- | update field
 
 -- we just check one row after another and update the field accordingly
 -- call this after addToField
@@ -213,8 +208,9 @@ updateStatus layoutInfo field val = do
                               False -> return Nothing -- not downward cannot move
                               -- downward cannot move, so we add this to markField
                               True  -> do
-                                    field' <- blockTransact layoutInfo field
-                                    let field'' = meltBlocks field'
+                                    print $ "can not move down"
+                                    field'' <- blockTransact layoutInfo (field {currentBlock = block'})
+                                    --let field'' = meltBlocks field'
                                     case isGameOver field'' of
                                          True  -> return $ Just field'' {bGameOver = True}
                                          False -> return $ Just field''
@@ -224,8 +220,13 @@ updateStatus layoutInfo field val = do
 
          where blockTransact layoutInfo field = do
                     let field' = addToField (currentBlock field) field
+                    print $ "add a block to the field" ++ show field'
                     backupBlock' <- getNewBackupBlock layoutInfo
                     return $ field' {currentBlock = (backupBlock field), backupBlock = backupBlock'}
+
+               addToField :: Block -> Field -> Field
+               addToField block field = let ps = coordinate block
+                                         in field { markField = union (markField field) ps }
 
                keyToDirection :: Word32 -> Maybe Position
                keyToDirection val = case val of
