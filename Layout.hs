@@ -28,6 +28,7 @@ initTetrisLayout = do
     containerAdd hButtonBox' restartB'
     containerAdd hButtonBox' infoB'
     containerAdd hButtonBox' quitB'
+    --containerSetBorderWidth table' 5
 
     -- score labels
     strScore'     <- labelNewWithMnemonic "S C O R E"

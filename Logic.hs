@@ -35,6 +35,7 @@ initFieldData layoutInfo = do
 resetAll :: LayoutInfo -> IORef Field -> IO ()
 resetAll layoutInfo refField = do
          backupBlock  <- getNewBackupBlock layoutInfo
+         threadDelay 1005
          currentBlock <- getNewBackupBlock layoutInfo
          let field = Field {bGameOver = False, currentBlock = currentBlock, 
                                         backupBlock = backupBlock,  markField = [] }
@@ -75,7 +76,7 @@ headerP   = [ headerPO,   headerPI,   headerPL,    headerPJ,   headerPS,   heade
 
 shapeVList   = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
                   -- O                         -- I                            
-initPosition = [ [(9,0),(10,0),(9,1),(10,1)],  [(8,0),(9,0),(10,0),(11,0)], 
+initPosition = [ [(10,0),(11,0),(10,1),(11,1)],  [(9,0),(10,0),(11,0),(12,0)], 
                   -- L                         -- J
                  [(11,0),(11,1),(10,1),(9,1)], [(9,0),(9,1),(10,1),(11,1)],   
                   -- S                         -- Z

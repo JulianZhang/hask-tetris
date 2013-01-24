@@ -17,23 +17,27 @@ drawRectUnit :: (Double, Double, Double, Double) -> Render ()
 drawRectUnit (x, y, w, h) =  rectangle x y w h >> fillPreserve >> stroke
 
 backupCoorTransform :: Double -> Double -> Position -> (Double, Double, Double, Double)
-backupCoorTransform w h p = ( ((fromIntegral $ xp p) - 8 ) * wUnit, ( fromIntegral $ yp p) * hUnit + (h / 6), wUnit, hUnit) 
+backupCoorTransform w h p = ( ((fromIntegral $ xp p) - 8 ) * wUnit - 4, ( fromIntegral $ yp p) * hUnit + 25, wUnit, hUnit) 
 
 tetrisPreviewRender field dw w h = renderWithDrawable dw $ do
                    let block = backupBlock field
                        coors = map (backupCoorTransform w h) $ coordinate block -- we get the 4 coordinates
-                       
                        (r,g,b,a) = color block
                    setSourceRGBA r g b a
-                   setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 5)
-                   translate (0) (0)
+                   setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 3)
+                   --translate (0) (0)
                    mapM drawRectUnit coors
+                   setSourceRGBA 0.0 0.40 0.7 1
+                   setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 3)
+                   moveTo 0 0 >> lineTo w 0 >> lineTo w h >> lineTo 0 h >> lineTo 0 0 >> stroke
 
 tetrisMainRender field dw w h= renderWithDrawable dw $ do
                 let block = currentBlock field
                     (r,g,b,a) = color block
                     coorBlock = map coordinateTransform $ coordinate block
                     coors     = map coordinateTransform $ markField field
+                setSourceRGBA 0.0 0.40 0.7 1
+                moveTo 0 0 >> lineTo w 0 >> lineTo w h >> lineTo 0 h >> lineTo 0 0 >> stroke
                 setSourceRGBA r g b a
                 setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 4)
                 mapM drawRectUnit coorBlock
