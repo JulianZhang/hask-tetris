@@ -7,8 +7,8 @@ import Data.IORef
 
 -- draw part should be totally separated from the logic
 data LayoutInfo = LayoutInfo {
-          mainWindow     :: Window      , 
-          drawingArea    :: DrawingArea  , 
+          mainWindow     :: Window        , 
+          drawingArea    :: DrawingArea   , 
           previewArea    :: DrawingArea   , 
           labelScore     :: Label         , 
           labelLevel     :: Label         , 
@@ -16,7 +16,7 @@ data LayoutInfo = LayoutInfo {
           restartB       :: Button        , 
           infoB          :: Button        , 
           quitB          :: Button        , 
-          initTime       :: !UTCTime       , 
+          initTime       :: !UTCTime      , 
           timerId        :: !(IO (Maybe HandlerId), (Maybe HandlerId) -> IO ())
           }
 
@@ -63,4 +63,3 @@ instance Num Position where
      abs    a = error "abs is not implemented"
      signum a = error "signum is unimplemented"
      fromInteger a = error "fromInteger is unimplemented"
-

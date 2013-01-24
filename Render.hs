@@ -17,7 +17,7 @@ drawRectUnit :: (Double, Double, Double, Double) -> Render ()
 drawRectUnit (x, y, w, h) =  rectangle x y w h >> fillPreserve >> stroke
 
 backupCoorTransform :: Double -> Double -> Position -> (Double, Double, Double, Double)
-backupCoorTransform w h p = ( (fromIntegral $ xp p) * (w/20), (fromIntegral $ yp p) + (h/2), wUnit/4, hUnit/4 ) 
+backupCoorTransform w h p = ( ((fromIntegral $ xp p) - 8 ) * wUnit, ( fromIntegral $ yp p) * hUnit + (h / 6), wUnit, hUnit) 
 
 tetrisPreviewRender field dw w h = renderWithDrawable dw $ do
                    let block = backupBlock field
@@ -25,8 +25,8 @@ tetrisPreviewRender field dw w h = renderWithDrawable dw $ do
                        
                        (r,g,b,a) = color block
                    setSourceRGBA r g b a
-                   setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 4)
-                   --translate (0) (20)
+                   setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 5)
+                   translate (0) (0)
                    mapM drawRectUnit coors
 
 tetrisMainRender field dw w h= renderWithDrawable dw $ do
