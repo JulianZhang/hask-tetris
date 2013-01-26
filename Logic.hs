@@ -260,7 +260,8 @@ drawMainArea layoutInfo refField val = do
                             dr <- widgetGetDrawWindow $ drawingArea layoutInfo
                             (w, h) <- widgetGetSize $ drawingArea layoutInfo
                             print $ "main " ++ show w  ++ " " ++ show h
-                            tetrisMainRender field dr (fromIntegral w) (fromIntegral h)
+                            regio <- regionRectangle $ Rectangle 0 0 (fromIntegral w) (fromIntegral h)
+                            tetrisMainRender field dr regio (fromIntegral w) (fromIntegral h)
                             return ()
 
 drawPreviewArea layoutInfo refField = do 
@@ -269,5 +270,6 @@ drawPreviewArea layoutInfo refField = do
                 (w, h) <- widgetGetSize $ previewArea layoutInfo
                 print $ show w  ++ " " ++ show h
                 -- render preview area using backupBlock
-                tetrisPreviewRender field dr (fromIntegral w) (fromIntegral h)
+                regio <- regionRectangle $ Rectangle 0 0 (fromIntegral w) (fromIntegral h)
+                tetrisPreviewRender field dr regio (fromIntegral w) (fromIntegral h)
                 return True
