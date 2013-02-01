@@ -46,56 +46,19 @@ resetAll layoutInfo refField = do
 maxRows    = 24 :: Int
 maxColumns = 18 :: Int
 
--- | relative positio, header position
-relativePO = [ [(0,0), (1,0), (0,1), (1,1)] ]
-headerPO   = [ (0, 0) ]
-
-relativePI = [ [(0,0), (1,0), (2,0),  (3,0) ], [(0,0), (0,-1), (0,-2), (0,-3)] ]
-headerPI   = [ (-3,3), (3, -3) ]
-
-relativePL = [ [(0,0), (0,1),  (-1,1) , (-2,1)], [(0,0), (1,0), (1,1), (1,2)   ] ,
-               [(0,0), (0,-1), (1,-1), (2, -1)], [(0,0), (-1,0),(-1,-1),(-1,-2)] ]
-headerPL   = [ (1,-1), (-2,-1), (-1,-2), (2,0) ]
-
-relativePJ = [ [(0,0), (0,1),  (1,1),  (2,1)  ], [(0,0), (1,0) , (1,-1), (1,-2) ] ,
-               [(0,0), (0,-1), (-1,-1),(-2,-1)], [(0,0), (-1,0), (-1,1), (-1,2) ] ]
-headerPJ   = [ (-2,-1), (0,1), (2,0), (0,-2) ]
-
-relativePS = [ [(0,0), (1,0), (1,-1), (2,-1)], [(0,0), (0,1), (1, 1), (1,2)] ]
-headerPS   = [ (-1,2), (0,-2)]
-
-relativePZ = [ [(0,0), (1,0), (1,1), (2,1)], [(0,0), (0,1), (-1,1), (-1,2)] ]
-headerPZ   = [ (-2,1), (1, -1)]
-
-relativePT = [ [(0,0), (1,0), (2,0), (1,1)  ], [(0,0), (0,-1),(0,-2),(1,-1)] ,
-               [(0,0), (-1,0),(-2,0),(-1,-1)], [(0,0), (0,1), (0,2), (-1,1)] ]
-headerPT   = [ (-2,1), (1,1), (2,0), (0,2) ]
-
-relativeP = [ relativePO, relativePI, relativePL,  relativePJ, relativePS, relativePZ,  relativePT]
-headerP   = [ headerPO,   headerPI,   headerPL,    headerPJ,   headerPS,   headerPZ,    headerPT]
-
-shapeVList   = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
-                  -- O                         -- I                            
-initPosition = [ [(10,0),(11,0),(10,1),(11,1)],  [(9,0),(10,0),(11,0),(12,0)], 
-                  -- L                         -- J
-                 [(11,0),(11,1),(10,1),(9,1)], [(9,0),(9,1),(10,1),(11,1)],   
-                  -- S                         -- Z
-                 [(9,1),(10,1),(10,0),(11,0)], [(9,0),(10,0),(10,1),(11,1)], 
-                  -- T
-                 [(9,0),(10,0),(11,0),(10,1)]  ]
-
-
 -- after settled, the color turns to Grey. (draw field area can do this)
 -- 10 colors: Crimson, Indigo, Yellow, Orange, red, HotPink, Blue, DeepSkyBlue, DarkGreen
 colorList = [(0.86, 0.08, 0.24,0.8), (0.3, 0.0,  0.51,0.8), (1.0,  1.0,  0.0, 0.8), (1.0,  0.65, 0,   0.8),
              (1.0,  0.0,  0.0, 0.8), (1.0, 0.41, 0.71,0.8), (0.0,  0.0,  1.0, 0.8), (0.86, 0.08, 0.24,0.8),
              (0.0,  0.75, 1.0, 0.8), (0.0, 0.40, 0.0, 0.8) ] -- all kinds of colors!!
 
-down  = Position { xp = 0,    yp = 1   } 
-left  = Position { xp =(-1),  yp = 0   } 
-right = Position { xp = 1,    yp = 0   } 
-up    = Position { xp =(-10), yp =(-10)} 
+toPosition (x, y) = Position {xp = x, yp =y}
+down  = toPosition (0, 1)
+left  = toPosition (-1, 0)
+right = toPosition (1,  0)
+up    = toPosition (-10, -10)
 
+boundary = map toPosition (zip (repeat (-1)) [0..24]) ++ map toPosition (zip (repeat maxColumns) [0..24])
 
 {-| it take the current positions and expected variant NO.
     return new positions of the block.
@@ -113,12 +76,13 @@ moveAround around block field
            where 
            isReachBottom :: Block -> Bool
            isReachBottom block = let yps = map yp $ coordinate block
-                                  in or . map ( == (maxRows -1)) $ yps
+                                  in or . map ( == maxRows) $ yps
            checkMove around block field =
                let newP     = map (around +) $ coordinate block
                    newBlock = block {coordinate = newP}
                    markP    = markField field
-                in (newBlock, not . or . map (\p -> elem p markP ) $ newP)
+                   canDo    = (not . or . map (\p -> elem p (markP ++ boundary)) $ newP)
+                in (newBlock, canDo)
 
               
 -- | transform is special case of moveAround up
@@ -145,7 +109,7 @@ canTransform block field = let newBlock = getNextTransformBlock block
                              in map ( toPosition . coorPlus (x1', yp p)) $ (relativeP !! m) !! n
                           
         coorPlus (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-        toPosition (x, y) = Position {xp = x, yp =y}
+
 
 -- | update field
 
@@ -209,7 +173,7 @@ updateStatus layoutInfo field val = do
                               -- downward cannot move, so we add this to markField
                               True  -> do
                                     print $ "can not move down"
-                                    field'' <- blockTransact layoutInfo (field {currentBlock = block'})
+                                    field'' <- blockTransact layoutInfo field
                                     --let field'' = meltBlocks field'
                                     case isGameOver field'' of
                                          True  -> return $ Just field'' {bGameOver = True}
@@ -273,3 +237,45 @@ drawPreviewArea layoutInfo refField = do
                 regio <- regionRectangle $ Rectangle 0 0 (fromIntegral w) (fromIntegral h)
                 tetrisPreviewRender field dr regio (fromIntegral w) (fromIntegral h)
                 return True
+
+
+
+-- | relative positio, header position
+relativePO = [ [(0,0), (1,0), (0,1), (1,1)] ]
+headerPO   = [ (0, 0) ]
+
+relativePI = [ [(0,0), (1,0), (2,0),  (3,0) ], [(0,0), (0,-1), (0,-2), (0,-3)] ]
+headerPI   = [ (-3,3), (3, -3) ]
+
+relativePL = [ [(0,0), (0,1),  (-1,1) , (-2,1)], [(0,0), (1,0), (1,1), (1,2)   ] ,
+               [(0,0), (0,-1), (1,-1), (2, -1)], [(0,0), (-1,0),(-1,-1),(-1,-2)] ]
+headerPL   = [ (1,-1), (-2,-1), (-1,-2), (2,0) ]
+
+relativePJ = [ [(0,0), (0,1),  (1,1),  (2,1)  ], [(0,0), (1,0) , (1,-1), (1,-2) ] ,
+               [(0,0), (0,-1), (-1,-1),(-2,-1)], [(0,0), (-1,0), (-1,1), (-1,2) ] ]
+headerPJ   = [ (-2,-1), (0,1), (2,0), (0,-2) ]
+
+relativePS = [ [(0,0), (1,0), (1,-1), (2,-1)], [(0,0), (0,1), (1, 1), (1,2)] ]
+headerPS   = [ (-1,2), (0,-2)]
+
+relativePZ = [ [(0,0), (1,0), (1,1), (2,1)], [(0,0), (0,1), (-1,1), (-1,2)] ]
+headerPZ   = [ (-2,1), (1, -1)]
+
+relativePT = [ [(0,0), (1,0), (2,0), (1,1)  ], [(0,0), (0,-1),(0,-2),(1,-1)] ,
+               [(0,0), (-1,0),(-2,0),(-1,-1)], [(0,0), (0,1), (0,2), (-1,1)] ]
+headerPT   = [ (-2,1), (1,1), (2,0), (0,2) ]
+
+relativeP = [ relativePO, relativePI, relativePL,  relativePJ, relativePS, relativePZ,  relativePT]
+headerP   = [ headerPO,   headerPI,   headerPL,    headerPJ,   headerPS,   headerPZ,    headerPT]
+
+shapeVList   = [ (O,1), (I,2), (L,4), (J,4), (S,2), (Z,2), (T,4) ]
+                  -- O                         -- I                            
+initPosition = [ [(10,0),(11,0),(10,1),(11,1)],  [(9,0),(10,0),(11,0),(12,0)], 
+                  -- L                         -- J
+                 [(11,0),(11,1),(10,1),(9,1)], [(9,0),(9,1),(10,1),(11,1)],   
+                  -- S                         -- Z
+                 [(9,1),(10,1),(10,0),(11,0)], [(9,0),(10,0),(10,1),(11,1)], 
+                  -- T
+                 [(9,0),(10,0),(11,0),(10,1)]  ]
+
+
