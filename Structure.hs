@@ -1,3 +1,4 @@
+
 module Structure where
 
 import Graphics.UI.Gtk
@@ -32,7 +33,9 @@ data Field = Field {
          bGameOver     :: !Bool  , 
          currentBlock  :: !Block , 
          backupBlock   :: !Block , 
-         markField     :: ![Position]
+         markField     :: ![Position],
+         score         :: !Int,
+         accTime       :: !Int
          } deriving (Show)
 
 
@@ -62,4 +65,4 @@ instance Num Position where
      negate a = Position { xp = negate $ xp a , yp = negate $ yp a }
      abs    a = error "abs is not implemented"
      signum a = error "signum is unimplemented"
-     --fromInteger a = error "fromInteger is unimplemented"
+     fromInteger a = Position {xp = fromInteger a, yp = fromInteger a}

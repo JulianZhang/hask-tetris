@@ -4,7 +4,8 @@ import Graphics.UI.Gtk
 import Data.IORef
 import Data.Word(Word32)
 import Graphics.Rendering.Cairo
-import Layout
+
+--import Layout
 import Structure
 import Logic
 
@@ -15,7 +16,7 @@ registerSignals :: (LayoutInfo, IORef Field) -> IO (LayoutInfo, IORef Field)
 registerSignals (layoutInfo, refField) = do
     let window = mainWindow layoutInfo
     on  window   objectDestroy mainQuit
-    pauseButtonAffair layoutInfo
+    (pauseB     layoutInfo) `onToggled` pauseAffair layoutInfo
     (restartB   layoutInfo) `onClicked` resetAll  layoutInfo refField
     (infoB      layoutInfo) `onClicked` showInfo
     (quitB      layoutInfo) `onClicked` (widgetDestroy window >> mainQuit )
@@ -31,6 +32,7 @@ registerSignals (layoutInfo, refField) = do
                               liftIO $ drawMainArea    layoutInfo refField val
                               liftIO $ drawPreviewArea layoutInfo refField
                               return ()
+    
     return (layoutInfo, refField)
 
 runTetris :: (LayoutInfo, IORef Field) -> IO ()
@@ -39,22 +41,20 @@ runTetris (layoutInfo, _ ) = do
           widgetShowAll (mainWindow layoutInfo)
           mainGUI
     
--- we need MVar to be passed.
-pauseButtonAffair layoutInfo = do
+
+pauseAffair layoutInfo = do
     let pause = pauseB layoutInfo
-    buttonSetUseStock pause False
-    onToggled pause $ do
-              isPause <- toggleButtonGetActive pause
-              case isPause of
-                   False -> runIt   layoutInfo 
-                   True  -> pauseIt layoutInfo
+    isPause <- toggleButtonGetActive pause
+    case isPause of
+         False -> runIt   layoutInfo 
+         True  -> pauseIt layoutInfo
     return ()
                      
 
 --timeoutAdd IO Bool -> Int-> IO Handler
 runIt   layoutInfo = do
                  -- previewArea is drawed later for drawingMainArea will update the field
-                 handler <- flip timeoutAdd 1000
+                 handler <- flip timeoutAdd 20
                             ( widgetQueueDraw (drawingArea layoutInfo) >> 
                               widgetQueueDraw (previewArea layoutInfo) >> return True)
                  let (_, setTimerId) = timerId layoutInfo

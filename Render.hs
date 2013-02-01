@@ -20,6 +20,20 @@ backupCoorTransform :: Double -> Double -> Position -> (Double, Double, Double, 
 backupCoorTransform w h p = ( ((fromIntegral $ xp p) - 8 ) * 20 - 4, ( fromIntegral $ yp p) * 20 + 25, 20, 20) 
 
 tetrisPreviewRender field dw regio w h = renderWithDrawable dw $ do
+       case bGameOver field of
+            True  -> do
+                       setSourceRGBA 0.5 0.5 0.5 1.0
+                       moveTo 2 2
+                       setFontSize 20.0  
+                       showText "GAME OVER" 
+                       
+                       setSourceRGBA 0.0 0.40 0.7 1
+                       setLineCap LineCapRound >> setLineJoin LineJoinRound >> (setLineWidth 3)
+                       moveTo 0 0 >> lineTo w 0 >> lineTo w h >> lineTo 0 h >> lineTo 0 0 >> stroke
+                       --liftIO $ drawWindowEndPaint dw
+                       return ()
+
+            False -> do
                    let block = backupBlock field
                        coors = map (backupCoorTransform w h) $ coordinate block -- we get the 4 coordinates
                        (r,g,b,a) = color block
@@ -35,7 +49,7 @@ tetrisPreviewRender field dw regio w h = renderWithDrawable dw $ do
                    return ()
 
 
-tetrisMainRender field dw regio  w h= renderWithDrawable dw $ do
+tetrisMainRender field layoutInfo dw regio  w h = renderWithDrawable dw $ do
                 let block = currentBlock field
                     wUnit = w / (fromIntegral maxColumns)
                     hUnit = h / (fromIntegral maxRows)

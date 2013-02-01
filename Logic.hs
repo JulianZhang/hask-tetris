@@ -28,7 +28,7 @@ initFieldData layoutInfo = do
           threadDelay 1000
           currentBlock <- getNewBackupBlock layoutInfo
           refField <- newIORef $ Field {bGameOver = False, currentBlock = currentBlock, 
-                                        backupBlock = backupBlock,  markField = []     }
+                                        backupBlock = backupBlock,  markField = [], score = 0, accTime = 0 }
           return (layoutInfo, refField)
 
 -- | resetAll the tetris
@@ -38,7 +38,7 @@ resetAll layoutInfo refField = do
          threadDelay 1005
          currentBlock <- getNewBackupBlock layoutInfo
          let field = Field {bGameOver = False, currentBlock = currentBlock, 
-                                        backupBlock = backupBlock,  markField = [] }
+                                        backupBlock = backupBlock,  markField = [], score = 0, accTime = 0 }
          writeIORef refField field
 
 
@@ -119,11 +119,12 @@ canTransform block field = let newBlock = getNextTransformBlock block
 meltBlocks :: Field -> Field
 meltBlocks field = let markP = markField field
                        sortY =  sort . flip filter rows $ 
-                                \ y -> (yp . sum . filter ( (== y) . yp) $ markP) == columnSum
+                                \ y -> (xp . sum . filter ( (== y) . yp) $ markP) == columnSum
                     -- less than y's rwo, move down first and update field
+                       sortZ = sortY `debug` show sortY
                     in case length sortY == 0 of
                              True  -> field
-                             False -> field { markField =  foldl step markP sortY }
+                             False -> field { markField = foldl step markP sortY, score = score field + length sortY}
 
                     where step ps y = let ps' = filter ( (/= y) . yp ) ps
                                        in map (ltYPlusOne y) ps'
@@ -136,7 +137,7 @@ meltBlocks field = let markP = markField field
 
 -- when yp = 0, this is called after meltBlocks
 isGameOver :: Field -> Bool
-isGameOver filed = (length . filter ( (== 0) . yp ) $ markField filed) > 0
+isGameOver filed = (length . filter ( (== (0)) . yp ) $ markField filed) > 0
 
 getNewBackupBlock :: LayoutInfo -> IO Block
 getNewBackupBlock layoutInfo = do
@@ -159,24 +160,21 @@ getNewBackupBlock layoutInfo = do
 -- | updateStatus : key function , also update the 'level & score' in future
 updateStatus :: LayoutInfo -> Field ->  Word32 -> IO (Maybe Field)
 updateStatus layoutInfo field val = do
-       let  maybeDir = keyToDirection val
-       --print $ show maybeDir 
+       let  maybeDir = keyToDirection val (accTime field) 
        case maybeDir of
             Nothing  -> return Nothing
             Just dir -> do 
                  let (block', canMove) = moveAround dir (currentBlock field) field
-                 print $ "before " ++ show (currentBlock field)
-                 print $ show canMove ++ " and after " ++ show dir ++ show block'
                  case canMove of
                    False -> case dir == down of
                               False -> return Nothing -- not downward cannot move
                               -- downward cannot move, so we add this to markField
                               True  -> do
-                                    print $ "can not move down"
-                                    field'' <- blockTransact layoutInfo field
-                                    --let field'' = meltBlocks field'
+                                    field' <- blockTransact layoutInfo field
+                                    let field'' = meltBlocks field'
                                     case isGameOver field'' of
-                                         True  -> return $ Just field'' {bGameOver = True}
+                                         True  -> do print "game over" 
+                                                     return $ Just field'' {bGameOver = True} 
                                          False -> return $ Just field''
                                                    
                    -- can move or transform     
@@ -184,37 +182,45 @@ updateStatus layoutInfo field val = do
 
          where blockTransact layoutInfo field = do
                     let field' = addToField (currentBlock field) field
-                    print $ "add a block to the field" ++ show field'
                     backupBlock' <- getNewBackupBlock layoutInfo
                     return $ field' {currentBlock = (backupBlock field), backupBlock = backupBlock'}
-
+ 
                addToField :: Block -> Field -> Field
                addToField block field = let ps = coordinate block
                                          in field { markField = union (markField field) ps }
 
-               keyToDirection :: Word32 -> Maybe Position
-               keyToDirection val = case val of
+               keyToDirection :: Word32 -> Int -> Maybe Position
+               keyToDirection val accTime = case val of
                                          0xFF51  -> Just left  -- `debug` "left"
                                          0xFF52  -> Just up    -- `debug` "up"
                                          0xFF53  -> Just right -- `debug` "right"
                                          0xFF54  -> Just down  -- `debug` "down"
-                                         ((-1) :: Word32) -> Just down -- `debug` "down"
+                                         ((-1) :: Word32) -> case accTime == 0  of 
+                                                                  True -> Just down
+                                                                  False -> Nothing          
                                          _       -> Nothing -- `debug` "not support key"
 
 
 -- | the draw functions, periodically draw the image or react to keypress
 drawMainArea layoutInfo refField val = do 
     -- first update field status    
-    -- print $ "draw main" ++ show val
+    fieldTmp    <- readIORef refField
+    case val of 
+         ((-1) :: Word32) -> do 
+                             case (accTime fieldTmp + 1) == 40 of
+                                  True  -> writeIORef refField $ fieldTmp {accTime = 0}
+                                  False -> writeIORef refField $ fieldTmp {accTime = accTime fieldTmp + 1}
+         _                -> return ()
+           
     field      <- readIORef refField
     maybeField <- updateStatus layoutInfo field val
     case maybeField of
-         Nothing     -> return ()
+         Nothing     -> realMainRender layoutInfo field
          Just field' -> do
-                        -- print field'
                         writeIORef refField field'
-                        print $ markField field
                         realMainRender layoutInfo field'
+    labelSetText (labelScore layoutInfo) $ show (score field)
+    labelSetText (labelLevel layoutInfo) $ show (score field `div` 40)
     return True
 
     where realMainRender layoutInfo field = do
@@ -223,16 +229,16 @@ drawMainArea layoutInfo refField val = do
                    False -> do
                             dr <- widgetGetDrawWindow $ drawingArea layoutInfo
                             (w, h) <- widgetGetSize $ drawingArea layoutInfo
-                            print $ "main " ++ show w  ++ " " ++ show h
+                            --print $ "main " ++ show w  ++ " " ++ show h
                             regio <- regionRectangle $ Rectangle 0 0 (fromIntegral w) (fromIntegral h)
-                            tetrisMainRender field dr regio (fromIntegral w) (fromIntegral h)
+                            tetrisMainRender field layoutInfo dr regio (fromIntegral w) (fromIntegral h)
                             return ()
 
 drawPreviewArea layoutInfo refField = do 
                 field  <- readIORef refField                   
                 dr     <- widgetGetDrawWindow $ previewArea layoutInfo
                 (w, h) <- widgetGetSize $ previewArea layoutInfo
-                print $ show w  ++ " " ++ show h
+                --print $ show w  ++ " " ++ show h
                 -- render preview area using backupBlock
                 regio <- regionRectangle $ Rectangle 0 0 (fromIntegral w) (fromIntegral h)
                 tetrisPreviewRender field dr regio (fromIntegral w) (fromIntegral h)
